@@ -1,5 +1,5 @@
-import torch.nn.functional as F
 import torch.nn as nn
+import torch
     
 class UNet(nn.Module):
     def __init__(self):
@@ -18,8 +18,12 @@ class UNet(nn.Module):
         self.decoder_conv5 = nn.Conv2d(64, 8, 1)
         
         self.pool = nn.MaxPool2d(2, 2)
-        self.up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
-        self.prelu = nn.PReLU(0.2)
+        self.up1 = nn.ConvTranspose2d(1024,512,2,stride=2)
+        self.up2 = nn.ConvTranspose2d(512,256,2,stride=2)
+        self.up3 = nn.ConvTranspose2d(256,128,2,stride=2)
+        self.up4 = nn.ConvTranspose2d(128,64,2,stride=2)
+        
+        self.prelu = nn.PReLU(1,0.2)
 
     def forward(self, x):
         # Encoder
@@ -34,41 +38,74 @@ class UNet(nn.Module):
         x5 = self.prelu(self.encoder_conv5(x5))
         
         # Decoder
-        x = self.up(x5)
-        x = self.prelu(self.decoder_conv1(x))
+        # print(x5.shape)
+        x = self.up1(x5)
+        # print(x.shape)
         x = torch.cat([x, x4], dim=1)
-        x = self.up(x4)
+        # print(x.shape)
         x = self.prelu(self.decoder_conv1(x))
+        # print(x.shape)
+        x = self.up2(x)
+        # print(x.shape)
         x = torch.cat([x, x3], dim=1)
-        x = self.up(x)
+        # print(x.shape)
         x = self.prelu(self.decoder_conv2(x))
+        # print(x.shape)
+        
+        x = self.up3(x)
+        # print(x.shape)
         x = torch.cat([x, x2], dim=1)
-        x = self.up(x)
+        # print(x.shape)
         x = self.prelu(self.decoder_conv3(x))
+        # print(x.shape)
+        
+        x = self.up4(x)
+        # print(x.shape)
         x = torch.cat([x, x1], dim=1)
-        x = self.decoder_conv4(x)
+        # print(x.shape)
+        x = self.prelu(self.decoder_conv4(x))
+        # print(x.shape)
+        
         x = self.decoder_conv5(x)
+        # print(x.shape)
+        
         return x
     
-class InceptionBlock(nn.Module):  
+class InceptionBlock(nn.Module):
     def __init__(self, in_channels, out_channels):
-        super().__init__()
-        # The paper didn't mention about wher ethe batch norm and dropout layer were applied
-        self.block1 = nn.Conv2d(in_channels, out_channels, 1)
-        self.block2 = nn.Sequential(nn.Conv2d(in_channels, 1, 1), nn.Conv2d(1, 3, 3))
-        self.block3 = nn.Sequential(nn.Conv2d(in_channels, 1, 1), nn.Conv2d(1, 5, 5))
-        self.block4 = nn.Sequential(nn.MaxPool2d(3, 3), nn.Conv2d(in_channels, 1, 1))
-        self.batchNorm = nn.BatchNorm2d()
+        super(InceptionBlock, self).__init__()
+        
+        self.block1 = nn.Conv2d(in_channels, out_channels, kernel_size=1)
+        
+        self.block2 = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size=1),
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1)
+        )
+        
+        self.block3 = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size=1),
+            nn.Conv2d(out_channels, out_channels, kernel_size=5, padding=2)
+        )
+        
+        self.block4 = nn.Sequential(
+            nn.MaxPool2d(kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(in_channels, out_channels, kernel_size=1)
+        )
+        
+        self.batchNorm = nn.BatchNorm2d(out_channels * 4)  
+        # Applying batch norm after concatenation
         self.dropout = nn.Dropout2d(0.5)
+        self.final_conv = nn.Conv2d(out_channels * 4, out_channels, kernel_size=1)
         
     def forward(self, x):
-        x = batchNorm(x)
         out_block1 = self.block1(x)
         out_block2 = self.block2(x)
         out_block3 = self.block3(x)
         out_block4 = self.block4(x)
         
         concat_block = torch.cat([out_block1, out_block2, out_block3, out_block4], dim=1)
-        concat_block = dropout(concat_block)
-        return concat_block
+        concat_block = self.batchNorm(concat_block)
+        concat_block = self.dropout(concat_block)
+        final_out = self.final_conv(concat_block)
+        return final_out
         

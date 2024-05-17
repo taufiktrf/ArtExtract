@@ -1,4 +1,7 @@
 import torch.nn as nn
+import torch.nn.functional as F
+import torch
+
 
 class FeatureLoss(nn.Module):
     def __init__(self, vgg_feature_extractor):
@@ -7,9 +10,8 @@ class FeatureLoss(nn.Module):
         self.criterion = nn.MSELoss()
 
     def forward(self, output, target):
-        generated_features = self.vgg_feature_extractor(output)
-        target_features = self.vgg_feature_extractor(target)
-        return self.criterion(generated_features, target_features)
+        return self.criterion(output, target)
+
 
 class PixelwiseLoss(nn.Module):
     def __init__(self):
