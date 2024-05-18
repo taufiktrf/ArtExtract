@@ -2,16 +2,15 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 import torchvision.datasets as datasets
 from PIL import Image
-import os
 import torch
-
+import os
 
 class UNetDataset(Dataset):
     def __init__(self, images_dir, masks_dir, transform=None):
         self.images_dir = images_dir
         self.masks_dir = masks_dir
         self.transform = transform
-        self.images = sorted(os.listdir(images_dir))
+        self.images =  [f for f in sorted(os.listdir(images_dir)) if f.endswith('RGB.bmp') or f.endswith('.png')]
         
         # Ensure each image has corresponding 8 masks
         self.masks = {img_name: sorted([f for f in os.listdir(masks_dir) if f.startswith(img_name.split('_RGB')[0])]) for img_name in self.images}
@@ -34,6 +33,7 @@ class UNetDataset(Dataset):
         
         # Stack masks into a single tensor with shape (8, H, W)
         masks = torch.stack(masks)
+        print("Mask Shape:", masks.shape) 
         return image, masks
 
 def load_datasets(train_path, val_path):
@@ -52,7 +52,7 @@ def load_datasets(train_path, val_path):
     val_dataset = UNetDataset(images_dir=val_images_dir, masks_dir=val_masks_dir, transform=transform)
     
     # Create data loaders
-    train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=16, shuffle=False)
+    train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=8, shuffle=False)
     
     return train_loader, val_loader

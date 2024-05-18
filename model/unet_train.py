@@ -19,7 +19,7 @@ class VGGFeatureExtractor(nn.Module):
     def forward(self, x):
         return self.features(x)
 
-def train_test_model(model, train_path,val_path, feature_loss, pixelwise_loss, optimizer, device, num_epochs=100, patience=5):
+def train_test_model(model, train_path, val_path, feature_loss, pixelwise_loss, optimizer, device, num_epochs=100, patience=5):
     model.train()
     train_loader, val_loader = load_datasets(train_path, val_path)
     best_loss = float('inf')
@@ -47,10 +47,10 @@ def train_test_model(model, train_path,val_path, feature_loss, pixelwise_loss, o
             total_loss.backward()
             optimizer.step()     
             running_loss += total_loss.item()
-
         # Evaluate model on validation data
+        print('evaluate_model')
         val_loss = evaluate_model(model, val_loader, feature_loss, pixelwise_loss, device)
-        
+
         print(f"Epoch [{epoch+1}/{num_epochs}], Train Loss: {running_loss/len(train_loader):.4f}, Val Loss: {val_loss:.4f}")
 
         if val_loss < best_loss:
@@ -74,22 +74,34 @@ def early_stop(val_loss, epoch, patience):
             return True
     return False
 
+# Fix the evaluate model error!!!!
 def evaluate_model(model, val_loader, feature_loss, pixelwise_loss, device):
     model.eval()
-    val_loss = 0.0
     with torch.no_grad():
+        print('with statement')
+        print(val_loader)
         for images, masks in val_loader:
-            images, masks = images.to(device), masks.to(device)
+            print('1')
+            images = images.to(device)
+            masks = masks.to(device)
+            optimizer.zero_grad()
             output = model(images)
-            batch_loss = 0.0
+            
+            total_loss = 0.0
             for i in range(8):  # Assuming 8 output channels
-                output_image = output[:, i, :, :]  # Extract ith channel from the output
+                print('2')
+                output_image = output[:, i, :, :].unsqueeze(1)
+                # Extract ith channel from the output (B,1,H,W)
                 target_image = masks[:, i, :, :]  # Get corresponding target mask
+
                 feature_loss_val = feature_loss(output_image, target_image)
                 pixel_loss_val = pixelwise_loss(output_image, target_image)
-                batch_loss += feature_loss_val + pixel_loss_val
-            batch_loss /= 8  # Average over the 8 channels
-            val_loss += batch_loss.item()
+                total_loss += feature_loss_val + pixel_loss_val
+            
+            total_loss /= 8  # Average over the 8 channels
+            total_loss.backward()
+            optimizer.step()     
+            val_loss += total_loss.item()
     val_loss /= len(val_loader)  # Average over the validation set
     return val_loss
 
