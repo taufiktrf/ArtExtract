@@ -19,6 +19,26 @@ class VGGFeatureExtractor(nn.Module):
     def forward(self, x):
         return self.features(x)
 
+import matplotlib.pyplot as plt
+def plot_images(output_image, target_image, epoch, channel):
+    output_image_np = output_image.squeeze().cpu().detach().numpy()
+    target_image_np = target_image.squeeze().cpu().detach().numpy()
+    
+    plt.figure(figsize=(7, 5))
+    
+    plt.subplot(1, 2, 1)
+    plt.imshow(output_image_np, cmap='gray')
+    plt.title(f'Output - Epoch {epoch} - Channel {channel}',fontsize=9)
+    plt.axis('off')
+    
+    plt.subplot(1, 2, 2)
+    plt.imshow(target_image_np, cmap='gray')
+    plt.title(f'Target - Epoch {epoch} - Channel {channel}',fontsize=9)
+    plt.axis('off')
+    
+    plt.show()
+
+
 def train_test_model(model, train_path, val_path, feature_loss, pixelwise_loss, optimizer, device, num_epochs=100, patience=5):
     model.train()
     train_loader, val_loader = load_datasets(train_path, val_path)
@@ -34,23 +54,29 @@ def train_test_model(model, train_path, val_path, feature_loss, pixelwise_loss, 
             output = model(images)
             
             total_loss = 0.0
-            for i in range(8):  # Assuming 8 output channels
-                output_image = output[:, i, :, :].unsqueeze(1)
-                # Extract ith channel from the output (B,1,H,W)
-                target_image = masks[:, i, :, :]  # Get corresponding target mask
-                
-                feature_loss_val = feature_loss(output_image, target_image)
-                pixel_loss_val = pixelwise_loss(output_image, target_image)
-                total_loss += feature_loss_val + pixel_loss_val
+            for batch_idx in range(images.size(0)):
+                # Extract the output images and corresponding masks
+                output_batch = output[batch_idx]
+                masks_batch = masks[batch_idx]
+
+                # Iterate over each channel (8 channels)
+                for i in range(output_batch.size(0)):
+                    output_image = output_batch[i].unsqueeze(0)  
+                    target_image = masks_batch[i]
+    
+                    # if epoch%5 == 0:
+                    #     plot_images(output_image, target_image, epoch, i)
+                    feature_loss_val = feature_loss(output_image, target_image)
+                    # pixel_loss_val = pixelwise_loss(output_image, target_image)
+                    total_loss += feature_loss_val + 0 #pixel_loss_val
             
-            total_loss /= 8  # Average over the 8 channels
+            total_loss /= (images.size(0)*8)  # Average over the 8 channels
             total_loss.backward()
             optimizer.step()     
             running_loss += total_loss.item()
         # Evaluate model on validation data
-        print('evaluate_model')
-        val_loss = evaluate_model(model, val_loader, feature_loss, pixelwise_loss, device)
-
+        val_loss = evaluate_model(model, val_loader, feature_loss, pixelwise_loss, device,epoch)
+        
         print(f"Epoch [{epoch+1}/{num_epochs}], Train Loss: {running_loss/len(train_loader):.4f}, Val Loss: {val_loss:.4f}")
 
         if val_loss < best_loss:
@@ -60,7 +86,6 @@ def train_test_model(model, train_path, val_path, feature_loss, pixelwise_loss, 
             best_model_path = f"{save_dir}best_model_epoch_{epoch}.pth"
             torch.save(model.state_dict(), best_model_path)
         
-        # Check for early stopping
         if early_stop(val_loss, epoch, patience):
             print(f"Early stopping- No improvement for {patience} epochs.")
             break
@@ -74,36 +99,33 @@ def early_stop(val_loss, epoch, patience):
             return True
     return False
 
-# Fix the evaluate model error!!!!
-def evaluate_model(model, val_loader, feature_loss, pixelwise_loss, device):
-    model.eval()
-    with torch.no_grad():
-        print('with statement')
-        print(val_loader)
+def evaluate_model(model, val_loader, feature_loss, pixelwise_loss, device,epoch):
+    model.eval()  # Set the model to evaluation mode
+    total_loss = 0.0
+    
+    with torch.no_grad():  # Disable gradient computation
         for images, masks in val_loader:
-            print('1')
             images = images.to(device)
             masks = masks.to(device)
-            optimizer.zero_grad()
             output = model(images)
             
-            total_loss = 0.0
-            for i in range(8):  # Assuming 8 output channels
-                print('2')
-                output_image = output[:, i, :, :].unsqueeze(1)
-                # Extract ith channel from the output (B,1,H,W)
-                target_image = masks[:, i, :, :]  # Get corresponding target mask
+            for batch_idx in range(images.size(0)):
+                output_batch = output[batch_idx]
+                masks_batch = masks[batch_idx]
+                
+                for i in range(output_batch.size(0)):
+                    output_image = output_batch[i].unsqueeze(0)
+                    target_image = masks_batch[i]
+                    plot_images(output_image, target_image, epoch,i)
+                    feature_loss_val = feature_loss(output_image, target_image)
+                    # pixel_loss_val = pixelwise_loss(output_image, target_image)
+                    total_loss += feature_loss_val + 0 #pixel_loss_val
+    
+    # Compute the average loss over all batches and channels
+    total_loss /= len(val_loader) * images.size(0) * 8
+    
+    return total_loss
 
-                feature_loss_val = feature_loss(output_image, target_image)
-                pixel_loss_val = pixelwise_loss(output_image, target_image)
-                total_loss += feature_loss_val + pixel_loss_val
-            
-            total_loss /= 8  # Average over the 8 channels
-            total_loss.backward()
-            optimizer.step()     
-            val_loss += total_loss.item()
-    val_loss /= len(val_loader)  # Average over the validation set
-    return val_loss
 
 def gen_img(model, best_model_path, test_path, output_dir, device):
     model.load_state_dict(torch.load(best_model_path))

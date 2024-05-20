@@ -2,6 +2,7 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 import torchvision.datasets as datasets
 from PIL import Image
+import numpy as np
 import torch
 import os
 
@@ -23,23 +24,37 @@ class UNetDataset(Dataset):
         img_path = os.path.join(self.images_dir, img_name)
         image = Image.open(img_path).convert('RGB')
         
-        # Load all 8 masks
-        mask_paths = [os.path.join(self.masks_dir, mask_name) for mask_name in self.masks[img_name]]
-        masks = [Image.open(mask_path) for mask_path in mask_paths]
-        
+        mask_names = self.masks[img_name]
+        masks = []
+        for mask_name in mask_names:
+            mask_path = os.path.join(self.masks_dir, mask_name)
+            mask = Image.open(mask_path)
+            mode = mask.mode
+    
+        # If the mask image has more than one channel, convert it to grayscale
+            if mode not in ['L','I']: #watercolor image from CAVE dataset is RGBA 4 channel that causes error
+                # Convert the mask image to grayscale
+                mask = mask.convert('L')
+            if self.transform:
+                mask = self.transform(mask).float()
+            masks.append(mask)
+
         if self.transform:
             image = self.transform(image).float()
-            masks = [self.transform(mask).float() for mask in masks]
-        
-        # Stack masks into a single tensor with shape (8, H, W)
         masks = torch.stack(masks)
-        print("Mask Shape:", masks.shape) 
         return image, masks
 
 def load_datasets(train_path, val_path):
+    train_transform = transforms.Compose([
+        transforms.Resize((512, 512)),
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomVerticalFlip(),
+        transforms.ToTensor()
+    ])
+        
     transform = transforms.Compose([
         transforms.Resize((512, 512)),  
-        transforms.ToTensor(),        
+        transforms.ToTensor(),   
     ])
     
     train_images_dir = train_path + 'rgb_images/'
@@ -48,7 +63,7 @@ def load_datasets(train_path, val_path):
     val_masks_dir = val_path + 'ms_masks/'
     
     # Create custom datasets
-    train_dataset = UNetDataset(images_dir=train_images_dir, masks_dir=train_masks_dir, transform=transform)
+    train_dataset = UNetDataset(images_dir=train_images_dir, masks_dir=train_masks_dir, transform=train_transform)
     val_dataset = UNetDataset(images_dir=val_images_dir, masks_dir=val_masks_dir, transform=transform)
     
     # Create data loaders
