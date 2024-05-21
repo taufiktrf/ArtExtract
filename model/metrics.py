@@ -1,7 +1,8 @@
-import torch.nn as nn
 import torch.nn.functional as F
+import torch.nn as nn
+import numpy as np
 import torch
-
+import math
 
 class FeatureLoss(nn.Module):
     def __init__(self, vgg_feature_extractor):
@@ -16,7 +17,6 @@ class FeatureLoss(nn.Module):
         # print('feature-',loss.item())
         return loss
 
-
 class PixelwiseLoss(nn.Module):
     def __init__(self):
         super(PixelwiseLoss, self).__init__()
@@ -26,4 +26,17 @@ class PixelwiseLoss(nn.Module):
         loss = torch.mean(torch.abs(output - target))
         # print('pixel-',loss.item())
         return loss
+
+class PSNR_metrics(nn.Module):
+    def __init__(self):
+        super(PSNR_metrics, self).__init__()
+
+    def forward(self, output, target):
+        mse = torch.mean((target - output) ** 2)
+        if mse == 0:
+            return float('inf')
+        max_pixel = 255.0
+        PSNR = 20 * torch.log10(max_pixel / torch.sqrt(mse))
+        return PSNR
+
 

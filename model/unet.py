@@ -5,21 +5,27 @@ class InceptionBlock(nn.Module):
     def __init__(self, in_channels, out_channels):
         super(InceptionBlock, self).__init__()
         
-        self.block1 = nn.Conv2d(in_channels, out_channels, kernel_size=1)
+        self.block1 = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size=1),
+            nn.PReLU(out_channels,0.02)
+        )
         
         self.block2 = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=1),
-            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1)
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
+            nn.PReLU(out_channels,0.02)
         )
         
         self.block3 = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=1),
-            nn.Conv2d(out_channels, out_channels, kernel_size=5, padding=2)
+            nn.Conv2d(out_channels, out_channels, kernel_size=5, padding=2),
+            nn.PReLU(out_channels,0.02)
         )
         
         self.block4 = nn.Sequential(
             nn.MaxPool2d(kernel_size=3, stride=1, padding=1),
-            nn.Conv2d(in_channels, out_channels, kernel_size=1)
+            nn.Conv2d(in_channels, out_channels, kernel_size=1),
+            nn.PReLU(out_channels,0.02)
         )
         
         self.batchNorm = nn.BatchNorm2d(out_channels * 4)  
@@ -59,7 +65,6 @@ class UNet(nn.Module):
         self.encoder_conv5 = InceptionBlock(512, 1024)
         self.encoder_conv5_1 = InceptionBlock(1024, 1024)
         
-        
         # Decoder
         self.decoder_upsample1 = nn.ConvTranspose2d(1024, 512, kernel_size=2, stride=2)
         self.decoder_conv1 = InceptionBlock(1024, 512)
@@ -79,7 +84,11 @@ class UNet(nn.Module):
         
         
         # Output
-        self.output_conv = nn.Conv2d(64, 8, kernel_size=1)
+        self.output_conv = nn.Sequential(
+            nn.Conv2d(64, 8, kernel_size=1),
+            nn.SiLU()
+        )
+        # nn.Conv2d(64, 8, kernel_size=1)
 
     def forward(self, x):
         # Encoder

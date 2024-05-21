@@ -1,13 +1,14 @@
-from unet_losses import FeatureLoss, PixelwiseLoss
-from load_data import load_datasets
-import torch.optim as optim
-import torchvision.models as models
-import torch.nn as nn
+from metrics import FeatureLoss, PixelwiseLoss, PSNR_metrics
 from torchvision.models.vgg import VGG16_Weights
+from load_data import load_datasets
+import torchvision.models as models
+import matplotlib.pyplot as plt
+import torch.optim as optim
+import torch.nn as nn
 from unet import UNet
-import torch
 from PIL import Image
 import argparse
+import torch
 import os
 
 class VGGFeatureExtractor(nn.Module):
@@ -19,11 +20,10 @@ class VGGFeatureExtractor(nn.Module):
     def forward(self, x):
         return self.features(x)
 
-import matplotlib.pyplot as plt
+# Display the output image and compare with target image visually
 def plot_images(output_image, target_image, epoch, channel):
     output_image_np = output_image.squeeze().cpu().detach().numpy()
     target_image_np = target_image.squeeze().cpu().detach().numpy()
-    
     plt.figure(figsize=(7, 5))
     
     plt.subplot(1, 2, 1)
@@ -44,6 +44,7 @@ def train_test_model(model, train_path, val_path, feature_loss, pixelwise_loss, 
     train_loader, val_loader = load_datasets(train_path, val_path)
     best_loss = float('inf')
     best_model_path = None
+    psnr_calculator = PSNR_metrics()
 
     for epoch in range(num_epochs):
         running_loss = 0.0
@@ -54,6 +55,8 @@ def train_test_model(model, train_path, val_path, feature_loss, pixelwise_loss, 
             output = model(images)
             
             total_loss = 0.0
+            train_psnr = 0.0
+            total_rmse = 0.0
             for batch_idx in range(images.size(0)):
                 # Extract the output images and corresponding masks
                 output_batch = output[batch_idx]
@@ -63,21 +66,27 @@ def train_test_model(model, train_path, val_path, feature_loss, pixelwise_loss, 
                 for i in range(output_batch.size(0)):
                     output_image = output_batch[i].unsqueeze(0)  
                     target_image = masks_batch[i]
-    
-                    # if epoch%5 == 0:
-                    #     plot_images(output_image, target_image, epoch, i)
+                    if epoch == 1:
+                        plot_images(output_image, target_image, epoch, i)
                     feature_loss_val = feature_loss(output_image, target_image)
                     # pixel_loss_val = pixelwise_loss(output_image, target_image)
-                    total_loss += feature_loss_val + 0 #pixel_loss_val
+                    total_loss += feature_loss_val + 0 #pixel_loss_val-made it 0 now.
+                    psnr = psnr_calculator(output_image, target_image)
+                    train_psnr += psnr.item()
+                    # total_rmse += rmse.item()
             
-            total_loss /= (images.size(0)*8)  # Average over the 8 channels
+            total_loss /= len(train_loader) * images.size(0) * 8
+            train_psnr /= len(train_loader) * images.size(0) * 8
+
             total_loss.backward()
             optimizer.step()     
             running_loss += total_loss.item()
         # Evaluate model on validation data
-        val_loss = evaluate_model(model, val_loader, feature_loss, pixelwise_loss, device,epoch)
+        val_loss, val_psnr = evaluate_model(model, val_loader, feature_loss, pixelwise_loss, device,epoch)
         
-        print(f"Epoch [{epoch+1}/{num_epochs}], Train Loss: {running_loss/len(train_loader):.4f}, Val Loss: {val_loss:.4f}")
+        # print(f"Epoch [{epoch+1}/{num_epochs}], Train Loss: {running_loss:.4f}, Val Loss: {val_loss:.4f}")
+        print(f"Train PSNR: {train_psnr:.4f}, Val PSNR: {val_psnr:.4f}")
+
 
         if val_loss < best_loss:
             best_loss = val_loss
@@ -102,6 +111,8 @@ def early_stop(val_loss, epoch, patience):
 def evaluate_model(model, val_loader, feature_loss, pixelwise_loss, device,epoch):
     model.eval()  # Set the model to evaluation mode
     total_loss = 0.0
+    val_psnr = 0.0
+    psnr_calculator = PSNR_metrics()
     
     with torch.no_grad():  # Disable gradient computation
         for images, masks in val_loader:
@@ -119,12 +130,14 @@ def evaluate_model(model, val_loader, feature_loss, pixelwise_loss, device,epoch
                     plot_images(output_image, target_image, epoch,i)
                     feature_loss_val = feature_loss(output_image, target_image)
                     # pixel_loss_val = pixelwise_loss(output_image, target_image)
-                    total_loss += feature_loss_val + 0 #pixel_loss_val
+                    total_loss += feature_loss_val + 0
+                    psnr = psnr_calculator(output_image, target_image)
+                    val_psnr += psnr.item()
     
     # Compute the average loss over all batches and channels
     total_loss /= len(val_loader) * images.size(0) * 8
-    
-    return total_loss
+    val_psnr /= len(val_loader) * images.size(0) * 8
+    return total_loss, val_psnr
 
 
 def gen_img(model, best_model_path, test_path, output_dir, device):
