@@ -12,9 +12,7 @@ class FeatureLoss(nn.Module):
     def forward(self, output, target):
         output_features = self.vgg_feature_extractor(output)
         target_features = self.vgg_feature_extractor(target)
-    
         loss = torch.mean(torch.abs(output_features - target_features))
-        # print('feature-',loss.item())
         return loss
 
 class PixelwiseLoss(nn.Module):
@@ -22,9 +20,7 @@ class PixelwiseLoss(nn.Module):
         super(PixelwiseLoss, self).__init__()
 
     def forward(self, output, target):
-        # Calculate L1 loss
         loss = torch.mean(torch.abs(output - target))
-        # print('pixel-',loss.item())
         return loss
 
 class PSNR_metrics(nn.Module):
@@ -38,5 +34,18 @@ class PSNR_metrics(nn.Module):
         max_pixel = 255.0
         PSNR = 20 * torch.log10(max_pixel / torch.sqrt(mse))
         return PSNR
+    
+class RRMSE_metrics(nn.Module):
+    def __init__(self):
+        super(RRMSE_metrics, self).__init__()
+            
+    def forward(self, output, target):
+        if output.shape != target.shape:
+            raise ValueError("Images must have the same dimensions")
+        mse = torch.mean((target - output)**2)
+        rmse = torch.sqrt(mse)
+        mean_img = torch.mean(output)
+        rrmse = rmse / mean_img
+        return rrmse
 
 

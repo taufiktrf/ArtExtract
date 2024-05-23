@@ -1,12 +1,15 @@
-from metrics import FeatureLoss, PixelwiseLoss, PSNR_metrics
+from metrics import FeatureLoss, PixelwiseLoss, PSNR_metrics, RRMSE_metrics
 from torchvision.models.vgg import VGG16_Weights
 from load_data import load_datasets
 import torchvision.models as models
+from utils import plot_images, viz_train
+from datetime import datetime
 import matplotlib.pyplot as plt
 import torch.optim as optim
 import torch.nn as nn
 from unet import UNet
 from PIL import Image
+import numpy as np
 import argparse
 import torch
 import os
@@ -15,129 +18,115 @@ class VGGFeatureExtractor(nn.Module):
     def __init__(self):
         super(VGGFeatureExtractor, self).__init__()
         vgg = models.vgg16(weights=VGG16_Weights.DEFAULT)
+        vgg.features[0] = nn.Conv2d(1, 64, kernel_size=3, padding=1)
         self.features = vgg.features[:23] 
 
     def forward(self, x):
         return self.features(x)
 
-# Display the output image and compare with target image visually
-def plot_images(output_image, target_image, epoch, channel):
-    output_image_np = output_image.squeeze().cpu().detach().numpy()
-    target_image_np = target_image.squeeze().cpu().detach().numpy()
-    plt.figure(figsize=(7, 5))
-    
-    plt.subplot(1, 2, 1)
-    plt.imshow(output_image_np, cmap='gray')
-    plt.title(f'Output - Epoch {epoch} - Channel {channel}',fontsize=9)
-    plt.axis('off')
-    
-    plt.subplot(1, 2, 2)
-    plt.imshow(target_image_np, cmap='gray')
-    plt.title(f'Target - Epoch {epoch} - Channel {channel}',fontsize=9)
-    plt.axis('off')
-    
-    plt.show()
-
-
-def train_test_model(model, train_path, val_path, feature_loss, pixelwise_loss, optimizer, device, num_epochs=100, patience=5):
+def train_test_model(model, train_path, val_path, feature_loss, pixelwise_loss, optimizer, scheduler, device, num_epochs=100, patience=5):
     model.train()
     train_loader, val_loader = load_datasets(train_path, val_path)
     best_loss = float('inf')
-    best_model_path = None
-    psnr_calculator = PSNR_metrics()
-
-    for epoch in range(num_epochs):
-        running_loss = 0.0
+    psnr_calc = PSNR_metrics()
+    rrmse_calc = RRMSE_metrics()
+    
+    val_losses = []
+    train_losses = []
+    train_psnrs = []
+    val_psnrs = []
+    
+    for epoch in range(num_epochs):        
         for images, masks in train_loader:
-            images = images.to(device)
-            masks = masks.to(device)
+            images, masks = images.to(device), masks.to(device)
             optimizer.zero_grad()
             output = model(images)
+
+            batch_loss = 0.0
+            batch_psnr = 0.0
+            batch_rrmse = 0.0 
+            for i in range(images.size(0)):
+                for j in range(images.size(1)):
+                    output_image = output[i, j].unsqueeze(0)
+                    target_image = masks[i, j]
+                    if epoch == 4:
+                         plot_images(output_image, target_image, epoch, j)           
+                    loss = feature_loss(output_image, target_image)
+                    batch_loss += loss
+                    batch_psnr += psnr_calc(output_image, target_image).item()
+                    batch_rrmse += rrmse_calc(output_image, target_image)
+            batch_loss /= (images.size(0) * images.size(1)*len(train_loader))
+            batch_rrmse /= (images.size(0) * images.size(1)*len(train_loader))
+            batch_psnr /= (images.size(0) * images.size(1)*len(train_loader))
             
-            total_loss = 0.0
-            train_psnr = 0.0
-            total_rmse = 0.0
-            for batch_idx in range(images.size(0)):
-                # Extract the output images and corresponding masks
-                output_batch = output[batch_idx]
-                masks_batch = masks[batch_idx]
+            batch_loss.backward()
+            optimizer.step()
+            scheduler.step()
+        #pixel wise loss is not used now
+        val_loss, val_psnr, val_rrmse = evaluate_model(model, val_loader, feature_loss, None, device, epoch)
+        val_losses.append(val_loss)
+        train_losses.append(batch_loss)
+        train_psnrs.append(batch_psnr)
+        val_psnrs.append(val_psnr)
 
-                # Iterate over each channel (8 channels)
-                for i in range(output_batch.size(0)):
-                    output_image = output_batch[i].unsqueeze(0)  
-                    target_image = masks_batch[i]
-                    if epoch == 1:
-                        plot_images(output_image, target_image, epoch, i)
-                    feature_loss_val = feature_loss(output_image, target_image)
-                    # pixel_loss_val = pixelwise_loss(output_image, target_image)
-                    total_loss += feature_loss_val + 0 #pixel_loss_val-made it 0 now.
-                    psnr = psnr_calculator(output_image, target_image)
-                    train_psnr += psnr.item()
-                    # total_rmse += rmse.item()
-            
-            total_loss /= len(train_loader) * images.size(0) * 8
-            train_psnr /= len(train_loader) * images.size(0) * 8
-
-            total_loss.backward()
-            optimizer.step()     
-            running_loss += total_loss.item()
-        # Evaluate model on validation data
-        val_loss, val_psnr = evaluate_model(model, val_loader, feature_loss, pixelwise_loss, device,epoch)
-        
-        # print(f"Epoch [{epoch+1}/{num_epochs}], Train Loss: {running_loss:.4f}, Val Loss: {val_loss:.4f}")
-        print(f"Train PSNR: {train_psnr:.4f}, Val PSNR: {val_psnr:.4f}")
-
+        print(f"Epoch [{epoch+1}/{num_epochs}] Train PSNR: {batch_psnr:.4f}, Val PSNR: {val_psnr:.4f}, Train RRMSE: {batch_rrmse:.4f}, Val RRMSE: {val_rrmse:.4f}")
 
         if val_loss < best_loss:
             best_loss = val_loss
-            save_dir = './best_model/'
-            os.makedirs(save_dir,exist_ok=True)
-            best_model_path = f"{save_dir}best_model_epoch_{epoch}.pth"
+            dir = './best_model/'
+            os.makedirs(directory, exist_ok=True)
+            best_model_path = f"{dir}best_model_epoch_{epoch+1}.pth"
             torch.save(model.state_dict(), best_model_path)
-        
-        if early_stop(val_loss, epoch, patience):
-            print(f"Early stopping- No improvement for {patience} epochs.")
+
+        if len(val_losses) > patience and val_loss > min(val_losses[-patience:]):
+            print(f"Early stopping at epoch {epoch+1}")
             break
+            
     print("Train/Test completed")
+    viz_train(train_losses, val_losses, train_psnrs, val_psnrs)          
     return best_model_path
 
-def early_stop(val_loss, epoch, patience):
+def early_stop(val_losses, epoch, patience):
     if epoch > patience:
-        best_val_loss = min(val_loss[:epoch])
-        if val_loss[epoch] > best_val_loss:
+        best_val_loss = min(val_losses[:epoch])
+        if val_losses[epoch] > best_val_loss:
             return True
     return False
 
 def evaluate_model(model, val_loader, feature_loss, pixelwise_loss, device,epoch):
     model.eval()  # Set the model to evaluation mode
-    total_loss = 0.0
+    val_loss = 0.0
     val_psnr = 0.0
-    psnr_calculator = PSNR_metrics()
+    val_rrmse = 0.0
+    psnr_calc = PSNR_metrics()
+    rrmse_calc = RRMSE_metrics()
     
     with torch.no_grad():  # Disable gradient computation
         for images, masks in val_loader:
             images = images.to(device)
             masks = masks.to(device)
             output = model(images)
-            
-            for batch_idx in range(images.size(0)):
-                output_batch = output[batch_idx]
-                masks_batch = masks[batch_idx]
-                
-                for i in range(output_batch.size(0)):
-                    output_image = output_batch[i].unsqueeze(0)
-                    target_image = masks_batch[i]
-                    plot_images(output_image, target_image, epoch,i)
+            for i in range(images.size(0)):
+                for j in range(images.size(1)):
+                    output_image = output[i, j].unsqueeze(0)
+                    target_image = masks[i, j]
+                    # plot_images(output_image, target_image, epoch,i)
                     feature_loss_val = feature_loss(output_image, target_image)
                     # pixel_loss_val = pixelwise_loss(output_image, target_image)
-                    total_loss += feature_loss_val + 0
-                    psnr = psnr_calculator(output_image, target_image)
+                    val_loss += feature_loss_val + 0
+                    psnr = psnr_calc(output_image, target_image)
                     val_psnr += psnr.item()
+                    val_rrmse += rrmse_calc(output_image, target_image)
+                    #torch.sqrt(torch.mean((output_image - target_image) ** 2))
+            val_loss += val_loss / (images.size(0) * images.size(1))
+            val_psnr += val_psnr / (images.size(0) * images.size(1))
+            val_rrmse += val_rrmse / (images.size(0) * images.size(1))
     
-    # Compute the average loss over all batches and channels
-    total_loss /= len(val_loader) * images.size(0) * 8
-    val_psnr /= len(val_loader) * images.size(0) * 8
-    return total_loss, val_psnr
+    # Compute the average loss over all batches
+    val_loss /= len(val_loader)
+    val_psnr /= len(val_loader)
+    val_rrmse /= len(val_loader)
+    return val_loss, val_psnr, val_rrmse
 
 
 def gen_img(model, best_model_path, test_path, output_dir, device):

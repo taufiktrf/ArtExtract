@@ -7,30 +7,37 @@ class InceptionBlock(nn.Module):
         
         self.block1 = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=1),
-            nn.PReLU(out_channels,0.02)
+            nn.BatchNorm2d(out_channels),
+            nn.Dropout2d(0.4),
+            nn.PReLU(out_channels,0.2)
         )
         
         self.block2 = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=1),
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
-            nn.PReLU(out_channels,0.02)
+            nn.BatchNorm2d(out_channels),
+            nn.Dropout2d(0.4),
+            nn.ReLU()
+            # nn.PReLU(out_channels,0.2)
         )
         
         self.block3 = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=1),
             nn.Conv2d(out_channels, out_channels, kernel_size=5, padding=2),
-            nn.PReLU(out_channels,0.02)
+            nn.BatchNorm2d(out_channels),
+            nn.Dropout2d(0.4),
+            nn.ReLU()
+            # nn.PReLU(out_channels,0.2)
         )
         
         self.block4 = nn.Sequential(
             nn.MaxPool2d(kernel_size=3, stride=1, padding=1),
             nn.Conv2d(in_channels, out_channels, kernel_size=1),
-            nn.PReLU(out_channels,0.02)
+            nn.BatchNorm2d(out_channels),
+            nn.Dropout2d(0.4),
+            nn.PReLU(out_channels,0.2)
         )
         
-        self.batchNorm = nn.BatchNorm2d(out_channels * 4)  
-        # Applying batch norm after concatenation
-        self.dropout = nn.Dropout2d(0.5)
         self.final_conv = nn.Conv2d(out_channels * 4, out_channels, kernel_size=1)
         
     def forward(self, x):
@@ -40,8 +47,6 @@ class InceptionBlock(nn.Module):
         out_block4 = self.block4(x)
         
         concat_block = torch.cat([out_block1, out_block2, out_block3, out_block4], dim=1)
-        concat_block = self.batchNorm(concat_block)
-        concat_block = self.dropout(concat_block)
         final_out = self.final_conv(concat_block)
         return final_out
 
@@ -86,7 +91,7 @@ class UNet(nn.Module):
         # Output
         self.output_conv = nn.Sequential(
             nn.Conv2d(64, 8, kernel_size=1),
-            nn.SiLU()
+            nn.PReLU(8,0.2)
         )
         # nn.Conv2d(64, 8, kernel_size=1)
 
