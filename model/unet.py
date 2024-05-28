@@ -8,7 +8,7 @@ class InceptionBlock(nn.Module):
         self.block1 = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=1),
             nn.BatchNorm2d(out_channels),
-            nn.Dropout2d(0.4),
+            nn.Dropout2d(0.5),
             nn.PReLU(out_channels,0.2)
         )
         
@@ -16,25 +16,23 @@ class InceptionBlock(nn.Module):
             nn.Conv2d(in_channels, out_channels, kernel_size=1),
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
             nn.BatchNorm2d(out_channels),
-            nn.Dropout2d(0.4),
-            nn.ReLU()
-            # nn.PReLU(out_channels,0.2)
+            nn.Dropout2d(0.5),
+            nn.PReLU(out_channels,0.2)
         )
         
         self.block3 = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=1),
             nn.Conv2d(out_channels, out_channels, kernel_size=5, padding=2),
             nn.BatchNorm2d(out_channels),
-            nn.Dropout2d(0.4),
-            nn.ReLU()
-            # nn.PReLU(out_channels,0.2)
+            nn.Dropout2d(0.5),
+            nn.PReLU(out_channels,0.2)
         )
         
         self.block4 = nn.Sequential(
-            nn.MaxPool2d(kernel_size=3, stride=1, padding=1),
+            nn.AvgPool2d(kernel_size=3, stride=1, padding=1),
             nn.Conv2d(in_channels, out_channels, kernel_size=1),
             nn.BatchNorm2d(out_channels),
-            nn.Dropout2d(0.4),
+            nn.Dropout2d(0.5),
             nn.PReLU(out_channels,0.2)
         )
         
