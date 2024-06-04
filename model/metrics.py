@@ -56,7 +56,7 @@ class RRMSE_metrics(nn.Module):
         mse = torch.mean((target - output)**2)
         rmse = torch.sqrt(mse)
         mean_output = torch.mean(output)
-        rrmse = rmse / mean_output
+        rrmse = rmse / (mean_output+ 1e-8)
         return rrmse
     
 class SSIM_metrics(nn.Module):
