@@ -50,7 +50,7 @@ class PSNR_metrics(nn.Module):
         if mse == 0:
             return float('inf')
         max_pixel = 255.0
-        PSNR = 20 * torch.log10(max_pixel / torch.sqrt(mse))
+        PSNR = 10 * torch.log10(max_pixel / torch.sqrt(mse))
         return PSNR
     
 class RRMSE_metrics(nn.Module):
@@ -65,8 +65,13 @@ class RRMSE_metrics(nn.Module):
 
         mse = torch.mean((target_scaled - output_scaled)**2)
         rmse = torch.sqrt(mse)
+<<<<<<< Updated upstream
         mean_img = torch.mean(output_scaled)
         rrmse = rmse / mean_img
+=======
+        mean_output = torch.mean(output)
+        rrmse = rmse / mean_output
+>>>>>>> Stashed changes
         return rrmse
     
 class SSIM_metrics(nn.Module):

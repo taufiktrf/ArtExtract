@@ -19,20 +19,21 @@ def plot_images(output_image, target_image, epoch, channel):
     
     plt.show()
     
-def viz_train(train_losses, val_losses, train_rrmses, val_rrmses):
+def viz_train(losses, train_rrmses, val_rrmses,train_psnrs,val_psnrs,train_ssims,val_ssims):
     # Plotting Losses
-    train_losses = [loss.cpu().detach().numpy() for loss in train_losses]
-    val_losses = [loss.cpu().detach().numpy() for loss in val_losses]
-    
+    train_losses = [loss.cpu().detach().numpy() for loss in losses]    
     train_rrmses = [rrmse.cpu().detach().numpy() for rrmse in train_rrmses]
+    train_psnrs = [psnr.cpu().detach().numpy() for psnr in train_psnrs]
+    train_ssims = [ssim.cpu().detach().numpy() for ssim in train_ssims]
+    
     val_rrmses = [rrmse.cpu().detach().numpy() for rrmse in val_rrmses]
+    val_psnrs = [psnr.cpu().detach().numpy() for psnr in val_psnrs]
+    val_ssims = [ssim.cpu().detach().numpy() for ssim in val_ssims]
     
     plt.figure(figsize=(10, 5))
-    plt.plot(np.arange(1, len(train_losses) + 1), train_losses, label='Train Loss')
-    plt.plot(np.arange(1, len(val_losses) + 1), val_losses, label='Val Loss')
-    plt.xlabel('Epoch')
+    plt.plot(np.arange(1, len(train_losses) + 1), train_losses)
+    plt.xlabel('Batch')
     plt.ylabel('Loss')
-    plt.title('Training and Validation Losses')
     plt.legend()
     plt.show()
 
@@ -43,5 +44,23 @@ def viz_train(train_losses, val_losses, train_rrmses, val_rrmses):
     plt.xlabel('Epoch')
     plt.ylabel('rRMSE')
     plt.title('Training and Validation rRMSE')
+    plt.legend()
+    plt.show()
+    
+    plt.figure(figsize=(10, 5))
+    plt.plot(np.arange(1, len(train_psnrs) + 1), train_psnrs, label='Train PSNR')
+    plt.plot(np.arange(1, len(val_psnrs) + 1), val_psnrs, label='Val PSNR')
+    plt.xlabel('Epoch')
+    plt.ylabel('PSNR')
+    plt.title('Training and Validation PSNR')
+    plt.legend()
+    plt.show()
+    
+    plt.figure(figsize=(10, 5))
+    plt.plot(np.arange(1, len(train_ssims) + 1), train_ssims, label='Train SSIM')
+    plt.plot(np.arange(1, len(val_ssims) + 1), val_ssims, label='Val SSIM')
+    plt.xlabel('Epoch')
+    plt.ylabel('SSIM')
+    plt.title('Training and Validation SSIM')
     plt.legend()
     plt.show()
