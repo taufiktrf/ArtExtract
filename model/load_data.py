@@ -11,7 +11,7 @@ class UNetDataset(Dataset):
         self.images_dir = images_dir
         self.masks_dir = masks_dir
         self.transform = transform
-        self.images =  [f for f in sorted(os.listdir(images_dir)) if f.endswith('RGB.bmp') or f.endswith('.png')]
+        self.images =  [f for f in sorted(os.listdir(images_dir)) if f.endswith('RGB.bmp') or f.endswith('.png') or f.endswith('.jpg')]
         
         # Ensure each image has corresponding 8 masks
         self.masks = {img_name: sorted([f for f in os.listdir(masks_dir) if f.startswith(img_name.split('_RGB')[0])]) for img_name in self.images}
@@ -35,14 +35,16 @@ class UNetDataset(Dataset):
             if mode not in ['L','I']: #watercolor image from CAVE dataset is RGBA 4 channel that causes error
                 # Convert the mask image to grayscale
                 mask = mask.convert('L')
-            if self.transform:
-                mask = self.transform(mask).float()
             masks.append(mask)
 
         if self.transform:
-            image = self.transform(image).float()
-        masks = torch.stack(masks)
-        return image, masks
+            image = self.transform(image)
+            masks = [self.transform(mask) for mask in masks]
+
+        # Convert masks to tensors and normalize pixel values
+        masks = torch.stack([mask.float() / 255.0 for mask in masks])
+        return image.float(), masks
+
 
 def load_datasets(train_path, val_path):
     train_transform = transforms.Compose([
@@ -67,7 +69,6 @@ def load_datasets(train_path, val_path):
     val_dataset = UNetDataset(images_dir=val_images_dir, masks_dir=val_masks_dir, transform=transform)
     
     # Create data loaders
-    train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=4, shuffle=False)
-    
+    train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=8, shuffle=False)
     return train_loader, val_loader

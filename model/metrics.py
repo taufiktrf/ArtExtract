@@ -11,13 +11,10 @@ class FeatureLoss(nn.Module):
         self.vgg_feature_extractor = vgg_feature_extractor
 
     def forward(self, output, target):
-        output_features = self.vgg_feature_extractor(output)
-        target_features = self.vgg_feature_extractor(target)
-        # loss = torch.mean(torch.abs(output_features - target_features))
-        output_scaled = output_features / output_features.max()
-        target_scaled = target_features / target_features.max()
-        
-        loss = torch.mean(torch.abs(output_scaled - target_scaled))
+        with torch.cuda.amp.autocast():
+            output_features = self.vgg_feature_extractor(output)
+            target_features = self.vgg_feature_extractor(target)
+            loss = torch.mean(torch.abs(output_features - target_features))
         return loss
 
 class PixelwiseLoss(nn.Module):
@@ -25,9 +22,7 @@ class PixelwiseLoss(nn.Module):
         super(PixelwiseLoss, self).__init__()
 
     def forward(self, output, target):
-        output_scaled = output / output.max()
-        target_scaled = target / target.max()
-        loss = torch.mean(torch.abs(output_scaled - target_scaled))
+        loss = torch.mean(torch.abs(output - target))
         return loss
     
 class BCELogitLoss(nn.Module):
@@ -43,10 +38,7 @@ class PSNR_metrics(nn.Module):
         super(PSNR_metrics, self).__init__()
 
     def forward(self, output, target):
-        output_scaled = output / output.max()
-        target_scaled = target / target.max()
-        
-        mse = torch.mean((target_scaled - output_scaled) ** 2)
+        mse = torch.mean((target - output) ** 2)
         if mse == 0:
             return float('inf')
         max_pixel = 255.0
@@ -60,18 +52,11 @@ class RRMSE_metrics(nn.Module):
     def forward(self, output, target):
         if output.shape != target.shape:
             raise ValueError("Images must have the same dimensions")
-        output_scaled = output / output.max()
-        target_scaled = target / target.max()
-
-        mse = torch.mean((target_scaled - output_scaled)**2)
+                
+        mse = torch.mean((target - output)**2)
         rmse = torch.sqrt(mse)
-<<<<<<< Updated upstream
-        mean_img = torch.mean(output_scaled)
-        rrmse = rmse / mean_img
-=======
         mean_output = torch.mean(output)
         rrmse = rmse / mean_output
->>>>>>> Stashed changes
         return rrmse
     
 class SSIM_metrics(nn.Module):
@@ -80,10 +65,8 @@ class SSIM_metrics(nn.Module):
         self.size_average = size_average
 
     def forward(self, output, target):
-        output_scaled = output / output.max()
-        target_scaled = target / target.max()
-        output_np = output_scaled.detach().cpu().numpy()
-        target_np = target_scaled.detach().cpu().numpy()
+        output_np = output.detach().cpu().numpy()
+        target_np = target.detach().cpu().numpy()
         
         if output_np.ndim == 4:  # (N, C, H, W) to (N, H, W, C)
             output_np = np.transpose(output_np, (0, 2, 3, 1))
