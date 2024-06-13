@@ -1,10 +1,12 @@
 import torch.nn.functional as F
 import torch.nn as nn
 from skimage.metrics import structural_similarity as ssim
+from pytorch_msssim import ms_ssim
 import numpy as np
 import torch
 import math
 
+#Loss Metrics
 class FeatureLoss(nn.Module):
     def __init__(self, vgg_feature_extractor):
         super(FeatureLoss, self).__init__()
@@ -25,46 +27,43 @@ class PixelwiseLoss(nn.Module):
         loss = torch.mean(torch.abs(output - target))
         return loss
     
-class BCELogitLoss(nn.Module):
+class MS_SSIMLoss(nn.Module):
     def __init__(self):
-        super(BCELogitLoss, self).__init__()
+        super(MS_SSIMLoss, self).__init__()
 
     def forward(self, output, target):
-        criterion = nn.BCEWithLogitsLoss()
-        return criterion(output,target)
+        output = output.unsqueeze(0)
+        target = target.unsqueeze(0)
+        loss = 1 - ms_ssim(output, target, data_range=1.0, size_average=True)
+        return loss
 
-class PSNR_metrics(nn.Module):
-    def __init__(self):
-        super(PSNR_metrics, self).__init__()
+#Evaluation Metrics
+class EvalMetrics(nn.Module):
+    def __init__(self, feature_extractor, size_average=True):
+        super(EvalMetrics, self).__init__()
+        self.size_average = size_average
+        self.feature_extractor = feature_extractor
+        self.loss_fn = nn.MSELoss()
 
-    def forward(self, output, target):
+    def psnr(self, output, target):
         mse = torch.mean((target - output) ** 2)
         if mse == 0:
             return float('inf')
         max_pixel = 255.0
-        PSNR = 10 * torch.log10(max_pixel / torch.sqrt(mse))
-        return PSNR
-    
-class RRMSE_metrics(nn.Module):
-    def __init__(self):
-        super(RRMSE_metrics, self).__init__()
-            
-    def forward(self, output, target):
-        if output.shape != target.shape:
-            raise ValueError("Images must have the same dimensions")
-                
-        mse = torch.mean((target - output)**2)
-        rmse = torch.sqrt(mse)
-        mean_output = torch.mean(output)
-        rrmse = rmse / (mean_output+ 1e-8)
-        return rrmse
-    
-class SSIM_metrics(nn.Module):
-    def __init__(self, size_average=True):
-        super(SSIM_metrics, self).__init__()
-        self.size_average = size_average
+        psnr_value = 10 * torch.log10(max_pixel / torch.sqrt(mse))
+        return psnr_value
 
-    def forward(self, output, target):
+#     def rrmse(self, output, target):
+#         if output.shape != target.shape:
+#             raise ValueError("Images must have the same dimensions")
+                
+#         mse = torch.mean((target - output) ** 2)
+#         rmse = torch.sqrt(mse)
+#         mean_output = torch.mean(output)
+#         rrmse_value = rmse / (mean_output + 1e-8)
+#         return rrmse_value
+    
+    def ssim(self, output, target):
         output_np = output.detach().cpu().numpy()
         target_np = target.detach().cpu().numpy()
         
@@ -82,4 +81,17 @@ class SSIM_metrics(nn.Module):
             return torch.tensor(ssim_values.mean())
         else:
             return torch.tensor(ssim_values)
+        
+    def lpips(self, output, target):
+        output_features = self.feature_extractor(output)
+        target_features = self.feature_extractor(target)
+        loss = self.loss_fn(output_features, target_features)
+        return loss
+    
+    def forward(self, output, target):
+        psnr_value = self.psnr(output, target)
+        # rrmse_value = self.rrmse(output, target)
+        lpips_value = self.lpips(output,target)
+        ssim_value = self.ssim(output, target)
+        return psnr_value, lpips_value, ssim_value
 

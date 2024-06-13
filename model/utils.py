@@ -19,19 +19,9 @@ def plot_images(output_image, target_image, epoch, channel):
     
     plt.show()
     
-def viz_train(losses, train_rrmses, val_rrmses,train_psnrs,val_psnrs,train_ssims,val_ssims):
-    # Plotting Losses
-    train_losses = [loss.cpu().detach().numpy() for loss in losses]    
-    train_rrmses = [rrmse.cpu().detach().numpy() for rrmse in train_rrmses]
-    train_psnrs = [psnr.cpu().detach().numpy() for psnr in train_psnrs]
-    train_ssims = [ssim.cpu().detach().numpy() for ssim in train_ssims]
-    
-    val_rrmses = [rrmse.cpu().detach().numpy() for rrmse in val_rrmses]
-    val_psnrs = [psnr.cpu().detach().numpy() for psnr in val_psnrs]
-    val_ssims = [ssim.cpu().detach().numpy() for ssim in val_ssims]
-    
+def viz_train(losses,train_lpipses, val_lpipses,train_psnrs,val_psnrs,train_ssims,val_ssims):
     plt.figure(figsize=(10, 5))
-    plt.plot(np.arange(1, len(train_losses) + 1), train_losses)
+    plt.plot(np.arange(1, len(losses) + 1), losses)
     plt.xlabel('Batch')
     plt.ylabel('Loss')
     plt.legend()
@@ -39,11 +29,11 @@ def viz_train(losses, train_rrmses, val_rrmses,train_psnrs,val_psnrs,train_ssims
 
     # Plotting PSNRs
     plt.figure(figsize=(10, 5))
-    plt.plot(np.arange(1, len(train_rrmses) + 1), train_rrmses, label='Train rRMSE')
-    plt.plot(np.arange(1, len(val_rrmses) + 1), val_rrmses, label='Val rRMSE')
+    plt.plot(np.arange(1, len(train_lpipses) + 1), train_lpipses, label='Train LPIPS')
+    plt.plot(np.arange(1, len(val_lpipses) + 1), val_lpipses, label='Val LPIPS')
     plt.xlabel('Epoch')
-    plt.ylabel('rRMSE')
-    plt.title('Training and Validation rRMSE')
+    plt.ylabel('LPIPS')
+    plt.title('Training and Validation LPIPS')
     plt.legend()
     plt.show()
     

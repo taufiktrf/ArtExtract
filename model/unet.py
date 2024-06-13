@@ -134,5 +134,4 @@ class UNet(nn.Module):
         
         # Output
         x = self.output_conv(x)
-        
         return x

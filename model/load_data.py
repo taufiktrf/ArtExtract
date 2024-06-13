@@ -69,6 +69,6 @@ def load_datasets(train_path, val_path):
     val_dataset = UNetDataset(images_dir=val_images_dir, masks_dir=val_masks_dir, transform=transform)
     
     # Create data loaders
-    train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=8, shuffle=False)
+    train_loader = DataLoader(train_dataset, batch_size=8, pin_memory=True,shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=8, pin_memory=True,shuffle=False)
     return train_loader, val_loader
