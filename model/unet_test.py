@@ -1,94 +1,77 @@
 import torch.nn as nn
 import torch
 
-class InceptionBlock(nn.Module):
+class Block1(nn.Module):
     def __init__(self, in_channels, out_channels):
-        super(InceptionBlock, self).__init__()
+        super(Block1, self).__init__()
         
         self.block1 = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=1),
-            nn.BatchNorm2d(out_channels),
-            # nn.Dropout2d(0.5),
-            nn.PReLU(out_channels,0.3)
-        )
-        
-        self.block2 = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=1),
-            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
+            nn.Conv2d(in_channels, out_channels, kernel_size=3,padding='same'),
             nn.BatchNorm2d(out_channels),
             nn.Dropout2d(0.5),
-            nn.PReLU(out_channels,0.3)
+            nn.PReLU(out_channels,0.2)
         )
-        
-        self.block3 = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=1),
-            nn.Conv2d(out_channels, out_channels, kernel_size=5, padding=2),
-            nn.BatchNorm2d(out_channels),
-            # nn.Dropout2d(0.5),
-            nn.PReLU(out_channels,0.3)
-        )
-        
-        self.block4 = nn.Sequential(
-            # nn.AvgPool2d(kernel_size=3, stride=1, padding=1),
-            nn.Conv2d(in_channels, out_channels, kernel_size=1),
-            nn.BatchNorm2d(out_channels),
-            nn.Dropout2d(0.5),
-            nn.PReLU(out_channels,0.3)
-        )
-        
-        self.final_conv = nn.Conv2d(out_channels * 4, out_channels, kernel_size=1)
         
     def forward(self, x):
         out_block1 = self.block1(x)
-        out_block2 = self.block2(x)
-        out_block3 = self.block3(x)
-        out_block4 = self.block4(x)
+        return out_block1
+    
+class Block2(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super(Block2, self).__init__()
         
-        concat_block = torch.cat([out_block1, out_block2, out_block3, out_block4], dim=1)
-        final_out = self.final_conv(concat_block)
-        return final_out
+        self.block1 = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size=1),
+            nn.Conv2d(out_channels, out_channels, kernel_size=5, padding=2),
+            # nn.BatchNorm2d(out_channels),
+            nn.Dropout2d(0.5),
+            nn.PReLU(out_channels,0.2)
+        )
+
+    def forward(self, x):
+        out_block1 = self.block1(x)
+        return out_block1
 
 class UNet(nn.Module):
     def __init__(self):
         super(UNet, self).__init__()
         
         # Encoder
-        self.encoder_conv1 = InceptionBlock(3, 64)
-        self.encoder_conv1_1 = InceptionBlock(64, 64)
+        self.encoder_conv1 = Block1(3, 64)
+        self.encoder_conv1_1 = Block1(64, 64)
         self.encoder_pool1 = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.encoder_conv2 = InceptionBlock(64, 128)
-        self.encoder_conv2_1 = InceptionBlock(128, 128)
+        self.encoder_conv2 = Block1(64, 128)
+        self.encoder_conv2_1 = Block1(128, 128)
         self.encoder_pool2 = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.encoder_conv3 = InceptionBlock(128, 256)
-        self.encoder_conv3_1 = InceptionBlock(256, 256)
+        self.encoder_conv3 = Block1(128, 256)
+        self.encoder_conv3_1 = Block1(256, 256)
         self.encoder_pool3 = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.encoder_conv4 = InceptionBlock(256, 512)
-        self.encoder_conv4_1 = InceptionBlock(512, 512)
+        self.encoder_conv4 = Block1(256, 512)
+        self.encoder_conv4_1 = Block1(512, 512)
         self.encoder_pool4 = nn.MaxPool2d(kernel_size=2,stride=2)
-        self.encoder_conv5 = InceptionBlock(512, 1024)
-        self.encoder_conv5_1 = InceptionBlock(1024, 1024)
+        self.encoder_conv5 = Block1(512, 1024)
+        self.encoder_conv5_1 = Block1(1024, 1024)
         
         # Decoder
         self.decoder_upsample1 = nn.ConvTranspose2d(1024, 512, kernel_size=2, stride=2)
-        self.decoder_conv1 = InceptionBlock(1024, 512)
-        self.decoder_conv1_1 = InceptionBlock(512, 512)
+        self.decoder_conv1 = Block2(1024, 512)
+        self.decoder_conv1_1 = Block2(512, 512)
         
         self.decoder_upsample2 = nn.ConvTranspose2d(512, 256, kernel_size=2, stride=2)
-        self.decoder_conv2 = InceptionBlock(512, 256)
-        self.decoder_conv2_1 = InceptionBlock(256, 256)
+        self.decoder_conv2 = Block2(512, 256)
+        self.decoder_conv2_1 = Block2(256, 256)
         
         self.decoder_upsample3 = nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2)
-        self.decoder_conv3 = InceptionBlock(256, 128)
-        self.decoder_conv3_1 = InceptionBlock(128, 128)
+        self.decoder_conv3 = Block2(256, 128)
+        self.decoder_conv3_1 = Block2(128, 128)
         
         self.decoder_upsample4 = nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2)
-        self.decoder_conv4 = InceptionBlock(128, 64)
-        self.decoder_conv4_1 = InceptionBlock(64, 64)
-        
+        self.decoder_conv4 = Block2(128, 64)
+        self.decoder_conv4_1 = Block2(64, 64)
         
         # Output
         self.output_conv = nn.Sequential(
-            nn.Conv2d(64, 8, kernel_size=1),
+            nn.Conv2d(64, 8, kernel_size=3, padding='same'),
             nn.PReLU(8,0.2)
         )
         # nn.Conv2d(64, 8, kernel_size=1)
