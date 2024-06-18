@@ -1,5 +1,6 @@
 import torch.nn as nn
 import torch
+from segtransformer import mit_b1
 
 class Block1(nn.Module):
     def __init__(self, in_channels, out_channels):
@@ -112,6 +113,69 @@ class UNet(nn.Module):
         
         x = self.decoder_upsample4(x)
         x = torch.cat([x, x1], dim=1)
+        x = self.decoder_conv4(x)
+        x = self.decoder_conv4_1(x)
+        
+        # Output
+        x = self.output_conv(x)
+        return x
+
+#---------------------------------------
+class STUNet(nn.Module):
+    def __init__(self):
+        super(STUNet, self).__init__()
+
+        # Encoder - replace with MixVisionTransformer
+        self.encoder = mit_b1()
+        self.encoder_conv5 = Block1(512, 1024)
+
+        # Decoder
+        self.decoder_upsample1 = nn.ConvTranspose2d(1024, 512, kernel_size=2, stride=2)
+        self.decoder_conv1 = Block2(1024, 512)
+        self.decoder_conv1_1 = Block2(512, 512)
+        
+        self.decoder_upsample2 = nn.ConvTranspose2d(512, 256, kernel_size=2, stride=2)
+        self.decoder_conv2 = Block2(512, 256)
+        self.decoder_conv2_1 = Block2(256, 256)
+        
+        self.decoder_upsample3 = nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2)
+        self.decoder_conv3 = Block2(256, 128)
+        self.decoder_conv3_1 = Block2(128, 128)
+        
+        self.decoder_upsample4 = nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2)
+        self.decoder_conv4 = Block2(128, 64)
+        self.decoder_conv4_1 = Block2(64, 64)
+        
+        # Output
+        self.output_conv = nn.Sequential(
+            nn.Conv2d(64, 8, kernel_size=3, padding='same'),
+            nn.PReLU(8, 0.2)
+        )
+
+    def forward(self, x):
+        # Encoder
+        encoder_outs = self.encoder.forward_features(x)
+        x1, x2, x3, x4 = encoder_outs[-4:]  # Assuming MixVisionTransformer returns 4 stages of outputs
+        
+        #------------------FIND WAY TO CONNECT THE OUTPUT TO THE DECODER!!!!
+
+        # Decoder
+        x = self.decoder_upsample1(x4)
+        x = torch.cat([x, x3], dim=1)
+        x = self.decoder_conv1(x)
+        x = self.decoder_conv1_1(x)
+        
+        x = self.decoder_upsample2(x)
+        x = torch.cat([x, x2], dim=1)
+        x = self.decoder_conv2(x)
+        x = self.decoder_conv2_1(x)
+        
+        x = self.decoder_upsample3(x)
+        x = torch.cat([x, x1], dim=1)
+        x = self.decoder_conv3(x)
+        x = self.decoder_conv3_1(x)
+        
+        x = self.decoder_upsample4(x)
         x = self.decoder_conv4(x)
         x = self.decoder_conv4_1(x)
         

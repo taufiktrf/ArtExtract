@@ -1,7 +1,6 @@
 import torch.nn.functional as F
 import torch.nn as nn
-from skimage.metrics import structural_similarity as ssim
-from pytorch_msssim import ms_ssim
+from torchmetrics.image import StructuralSimilarityIndexMeasure as ssim
 import numpy as np
 import torch
 import math
@@ -44,6 +43,7 @@ class EvalMetrics(nn.Module):
         self.size_average = size_average
         self.feature_extractor = feature_extractor
         self.loss_fn = nn.MSELoss()
+        self.ssim_metric = ssim(data_range=1.0)
 
     def psnr(self, output, target):
         mse = torch.mean((target - output) ** 2)
@@ -64,23 +64,8 @@ class EvalMetrics(nn.Module):
 #         return rrmse_value
     
     def ssim(self, output, target):
-        output_np = output.detach().cpu().numpy()
-        target_np = target.detach().cpu().numpy()
-        
-        if output_np.ndim == 4:  # (N, C, H, W) to (N, H, W, C)
-            output_np = np.transpose(output_np, (0, 2, 3, 1))
-            target_np = np.transpose(target_np, (0, 2, 3, 1))
-
-        ssim_values = []
-        for i in range(output_np.shape[0]):
-            ssim_val = ssim(output_np[i], target_np[i], multichannel=True, data_range=target_np[i].max() - target_np[i].min())
-            ssim_values.append(ssim_val)
-        
-        ssim_values = np.array(ssim_values)
-        if self.size_average:
-            return torch.tensor(ssim_values.mean())
-        else:
-            return torch.tensor(ssim_values)
+        ssim_value = self.ssim_metric(output, target)
+        return ssim_valu
         
     def lpips(self, output, target):
         output_features = self.feature_extractor(output)

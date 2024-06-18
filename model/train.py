@@ -10,7 +10,7 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import torch.optim as optim
 import torch.nn as nn
-from unet import UNet
+from unet_test import UNet
 from PIL import Image
 import numpy as np
 import argparse
