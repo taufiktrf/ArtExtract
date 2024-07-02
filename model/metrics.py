@@ -1,6 +1,7 @@
 import torch.nn.functional as F
 import torch.nn as nn
 from torchmetrics.image import StructuralSimilarityIndexMeasure as ssim
+from pytorch_msssim import ms_ssim
 import numpy as np
 import torch
 import math
@@ -64,8 +65,10 @@ class EvalMetrics(nn.Module):
 #         return rrmse_value
     
     def ssim(self, output, target):
+        output = output.unsqueeze(0)
+        target = target.unsqueeze(0)
         ssim_value = self.ssim_metric(output, target)
-        return ssim_valu
+        return ssim_value
         
     def lpips(self, output, target):
         output_features = self.feature_extractor(output)

@@ -1,3 +1,4 @@
+#Variated version of Unet3++ with sparse connection
 import torch.nn as nn
 import torch
 
