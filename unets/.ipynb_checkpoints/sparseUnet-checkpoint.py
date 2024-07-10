@@ -1,4 +1,11 @@
-#Variated version of Unet3++ with sparse connection
+'''
+
+Inspired by the enhanced connectivity between encoder and decoder blocks in Unet2 and Unet3,
+I implemented a sparsely connected U-Net. This architecture reduces the concatenation of 
+encoder outputs with decoder inputs as the decoder block approaches its final layers.
+
+'''
+
 import torch.nn as nn
 import torch
 
@@ -48,9 +55,9 @@ class InceptionBlock(nn.Module):
         final_out = self.final_conv(concat_block)
         return final_out
 
-class UNet(nn.Module):
+class SparseUNet(nn.Module):
     def __init__(self):
-        super(UNet, self).__init__()
+        super(SparseUNet, self).__init__()
         
         # Encoder
         self.encoder_conv1 = InceptionBlock(3, 64)
@@ -117,18 +124,15 @@ class UNet(nn.Module):
         x1_64 = self.max8x(x1)
         x2_64 = self.max4x(x2)
         x2_64 = self.conv3_1(x2_64)
-        # print('x2_64: ',x2_64.shape)
         
         x3_64 = self.max2x(x3)
         x3_64 = self.conv3_2(x3_64)
-        # print('x3_64: ',x3_64.shape)
         
         x4_64 = self.conv3_3(x4)
         x5_64 = self.up2x(x5)
         d1 = torch.concat([x1_64,x2_64,x3_64,x4_64,x5_64],dim=1)
         d1 = self.d_conv1(d1)
-        # print('d1: ', d1.shape)
-        
+
         #d2
         d1_up = self.up2x_1(d1)
         x2_64 = self.max2x(x2)
@@ -136,7 +140,6 @@ class UNet(nn.Module):
         x4_64 = self.up2x_2(x4)
         d2 = torch.concat([d1_up,x2_64,x4_64],dim=1)
         d2 = self.d_conv2(d2)
-        # print('d2: ', d2.shape)
         
         #d3
         d2_up = self.up2x_3(d2)
@@ -144,12 +147,10 @@ class UNet(nn.Module):
         x5_64 = self.up8x(x5)
         d3 = torch.concat([d2_up,x3_64,x5_64],dim=1)
         d3 = self.d_conv2(d3)
-        # print('d3: ', d3.shape)
         
         #d4
         d3_up = self.up2x_3(d3)
         d4 = torch.cat([d3_up,x1],dim=1)
-        # print('d4: ', d4.shape)
         
         out = self.output_conv(d4)
         

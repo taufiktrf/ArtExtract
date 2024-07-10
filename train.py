@@ -1,21 +1,18 @@
-from metrics import FeatureLoss, PixelwiseLoss, MS_SSIMLoss, EvalMetrics
-from torchvision.models.vgg import VGG16_Weights
-from torchvision.models.alexnet import AlexNet_Weights
-from load_data import load_datasets
-import torchvision.models as models
-from utils import plot_images, viz_train
-from torch.cuda.amp import autocast, GradScaler
-import torch.nn.functional as F
-from datetime import datetime
-import matplotlib.pyplot as plt
-import torch.optim as optim
-import torch.nn as nn
-from unet_test import UNet
-from PIL import Image
-import numpy as np
-import argparse
-import torch
 import os
+import torch
+import argparse
+import torch.nn as nn
+import torch.optim as optim
+import torch.nn.functional as F
+from torch.cuda.amp import autocast, GradScaler
+from torchvision.models.vgg import VGG16_Weights
+import torchvision.models as models
+from PIL import Image
+
+from utils.metrics import MS_SSIMLoss, EvalMetrics
+from utils.data import load_datasets
+from utils.vizImg import plot_images, viz_train
+from model import SimpleUNet
 
 class VGGFeatureExtractor(nn.Module):
     def __init__(self):
@@ -27,7 +24,7 @@ class VGGFeatureExtractor(nn.Module):
     def forward(self, x):
         return self.features(x)
 
-def train_test_model(model, train_path, val_path, optimizer, scheduler, device, num_epochs=100, patience=5):
+def train_test_model(model, train_path, val_path, optimizer, scheduler, device,epochs,temp):
     vgg_feature_extractor = VGGFeatureExtractor().to(device)
     model.to(device)
     ms_ssim_loss = MS_SSIMLoss().to(device)
@@ -39,8 +36,13 @@ def train_test_model(model, train_path, val_path, optimizer, scheduler, device, 
     train_ssims, val_ssims = [], []
     scaler = GradScaler()
     accumulation_steps = 2
+    
+    best_val_lpips = float('inf')
+    best_model_dir = "best_model"
+    os.makedirs(best_model_dir, exist_ok=True)
+    best_model_number = 0
 
-    for epoch in range(num_epochs):
+    for epoch in range(epochs):
         model.train()
         epoch_psnr, epoch_lpips, epoch_ssim = 0.0, 0.0, 0.0
         temp_cnt = 0
@@ -78,7 +80,7 @@ def train_test_model(model, train_path, val_path, optimizer, scheduler, device, 
 
             losses.append(loss.item())
             del loss
-            torch.cuda.empty_cache()  # Clear cache to free up memory
+            torch.cuda.empty_cache()  
 
         NCT = len(train_loader) * images.size(0) * images.size(1)
         epoch_lpips /= NCT
@@ -86,7 +88,7 @@ def train_test_model(model, train_path, val_path, optimizer, scheduler, device, 
         epoch_ssim /= NCT
 
         del images, masks
-        torch.cuda.empty_cache()  # Clear cache to free up memory after epoch
+        torch.cuda.empty_cache()  
 
         with torch.no_grad():
             train_lpipses.append(epoch_lpips)
@@ -96,12 +98,27 @@ def train_test_model(model, train_path, val_path, optimizer, scheduler, device, 
             val_lpipses.append(val_lpips)
             val_psnrs.append(val_psnr)
             val_ssims.append(val_ssim)
+            
+            # Save the best model based on validation LPIPS and delete previous best model
+            if val_lpips < best_val_lpips:
+                best_val_lpips = val_lpips
+                new_model_path = os.path.join(best_model_dir, f"best_model_{temp}_{best_model_number}.pth")
+                if best_model_number > 0:
+                    old_model_path = os.path.join(best_model_dir, f"best_model_{temp}_{best_model_number - 1}.pth")
+                    if os.path.exists(old_model_path):
+                        os.remove(old_model_path)
+                torch.save(model.state_dict(), new_model_path)
+                best_model_number += 1
+                print(f"Best model saved with Validation LPIPS: {best_val_lpips:.4f}")
 
-            print(f"Epoch [{epoch+1}/{num_epochs}] Train PSNR: {epoch_psnr:.4f}, Val PSNR: {val_psnr:.4f}, Train LPIPS: {epoch_lpips:.4f}, Val LPIPS: {val_lpips:.4f}, Train SSIM: {epoch_ssim:.4f}, Val SSIM: {val_ssim:.4f}")
+
+            print(f"Epoch [{epoch+1}/{epochs}] Train PSNR: {epoch_psnr:.4f}, Val PSNR: {val_psnr:.4f}, Train LPIPS: {epoch_lpips:.4f}, Val LPIPS: {val_lpips:.4f}, Train SSIM: {epoch_ssim:.4f}, Val SSIM: {val_ssim:.4f}")
 
     print("Train/Test completed")
     viz_train(losses, train_lpipses, val_lpipses, train_psnrs, val_psnrs, train_ssims, val_ssims)
-
+    
+# Evaluate model with the validation dataset
+# Current Val dataset is limited (Multispectral dataset of paintings)
 def evaluate_model(model, val_loader, device, epoch, metrics):
     model.eval()
     val_psnr, val_lpips, val_ssim = 0.0, 0.0, 0.0
@@ -154,33 +171,29 @@ def get_args():
     parser.add_argument('-g', '--genimg', action='store_false', help='Generate multispectral images')
     return parser.parse_args()
 
+def get_args():
+    parser = argparse.ArgumentParser(description="Train and evaluate a U-Net model")
+    parser.add_argument('-tr', '--trainpath', type=str, required=True, help='Path to training images')
+    parser.add_argument('-v', '--valpath', type=str, required=True, help='Path to validation images')
+    parser.add_argument('-te', '--testpath', type=str, help='Path to test images for generating multispectral images')
+    parser.add_argument('-o', '--outputpath', type=str, help='Path to save generated multispectral images')    
+    parser.add_argument('-l', '--learningRate', type=float, default=0.0002, help='Learning rate')
+    parser.add_argument('-e', '--epochs', type=int, default=30, help='Number of epochs')
+    parser.add_argument('-g', '--genimg', action='store_true', help='Generate multispectral images')
+    return parser.parse_args()
+
 if __name__ == '__main__':
     args = get_args()
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print(device)
-    unet_model = UNet()
-    vgg_feature_extractor = VGGFeatureExtractor()
-
-    unet_model.to(device)
-    vgg_feature_extractor.to(device)
-    pixelwise_loss = PixelwiseLoss().to(device)
-    feature_loss = FeatureLoss(vgg_feature_extractor).to(device)
+    print(f"Using device: {device}")
     
+    model = SimpleUNet().to(device)
     learning_rate = args.learningRate
-    train_path = args.trainpath
-    val_path = args.valpath
-    test_path = args.testpath
-    output_dir = args.outputpath
-    epochs = args.epochs
-    gen_img = args.genimg
+    optimizer = optim.NAdam(model.parameters(), lr=learning_rate)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
     
-    #optimizer = optim.Adam(unet_model.parameters(), lr=learning_rate)
-    # Following the paper using Adam optimizer with Nestrov momentum
-    optimizer = optim.NAdam(unet_model.parameters(), lr=learning_rate)
+    train_test_model(model, args.trainpath, args.valpath, optimizer, scheduler, device, epochs=args.epochs)
     
-    train_test_model(unet_model,train_path,val_path, feature_loss, pixelwise_loss, optimizer, device, num_epochs=epochs)
-    print('train/test completed')
-    
-    if gen_img:
-        gen_img(model, best_model_path, test_path, output_dir, device)
-        print('image generation completed')
+    if args.genimg:
+        generate_images(model, args.best_model_path, args.testpath, args.outputpath, device)
+        print('Image generation completed')

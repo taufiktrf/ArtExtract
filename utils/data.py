@@ -31,7 +31,7 @@ class UNetDataset(Dataset):
             mask = Image.open(mask_path)
             mode = mask.mode
     
-        # If the mask image has more than one channel, convert it to grayscale
+            # If the mask image has more than one channel, convert it to grayscale
             if mode not in ['L','I']: #watercolor image from CAVE dataset is RGBA 4 channel that causes error
                 # Convert the mask image to grayscale
                 mask = mask.convert('L')
@@ -69,6 +69,7 @@ def load_datasets(train_path, val_path):
     val_dataset = UNetDataset(images_dir=val_images_dir, masks_dir=val_masks_dir, transform=transform)
     
     # Create data loaders
+    # Use larger batch size if the dataset is bigger
     train_loader = DataLoader(train_dataset, batch_size=8, pin_memory=True,shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=8, pin_memory=True,shuffle=False)
     return train_loader, val_loader
