@@ -12,7 +12,10 @@ from PIL import Image
 from utils.metrics import MS_SSIMLoss, EvalMetrics
 from utils.data import load_datasets
 from utils.vizImg import plot_images, viz_train
-from model import SimpleUNet
+from model import SimplyUNet
+import warnings
+
+warnings.filterwarnings("ignore")
 
 class VGGFeatureExtractor(nn.Module):
     def __init__(self):
@@ -24,7 +27,7 @@ class VGGFeatureExtractor(nn.Module):
     def forward(self, x):
         return self.features(x)
 
-def train_test_model(model, train_path, val_path, optimizer, scheduler, device,epochs,temp):
+def train_test_model(model, train_path, val_path, optimizer, scheduler, device,epochs):
     vgg_feature_extractor = VGGFeatureExtractor().to(device)
     model.to(device)
     ms_ssim_loss = MS_SSIMLoss().to(device)
@@ -102,9 +105,9 @@ def train_test_model(model, train_path, val_path, optimizer, scheduler, device,e
             # Save the best model based on validation LPIPS and delete previous best model
             if val_lpips < best_val_lpips:
                 best_val_lpips = val_lpips
-                new_model_path = os.path.join(best_model_dir, f"best_model_{temp}_{best_model_number}.pth")
+                new_model_path = os.path.join(best_model_dir, f"best_model_{best_model_number}_{best_val_lpips:.4f}.pth")
                 if best_model_number > 0:
-                    old_model_path = os.path.join(best_model_dir, f"best_model_{temp}_{best_model_number - 1}.pth")
+                    old_model_path = os.path.join(best_model_dir, f"best_model_{best_model_number - 1}_{best_val_lpips:.4f}.pth")
                     if os.path.exists(old_model_path):
                         os.remove(old_model_path)
                 torch.save(model.state_dict(), new_model_path)
@@ -115,7 +118,8 @@ def train_test_model(model, train_path, val_path, optimizer, scheduler, device,e
             print(f"Epoch [{epoch+1}/{epochs}] Train PSNR: {epoch_psnr:.4f}, Val PSNR: {val_psnr:.4f}, Train LPIPS: {epoch_lpips:.4f}, Val LPIPS: {val_lpips:.4f}, Train SSIM: {epoch_ssim:.4f}, Val SSIM: {val_ssim:.4f}")
 
     print("Train/Test completed")
-    viz_train(losses, train_lpipses, val_lpipses, train_psnrs, val_psnrs, train_ssims, val_ssims)
+    # Uncomment the below if you want to check the training progress
+    # viz_train(losses, train_lpipses, val_lpipses, train_psnrs, val_psnrs, train_ssims, val_ssims)
     
 # Evaluate model with the validation dataset
 # Current Val dataset is limited (Multispectral dataset of paintings)
@@ -155,7 +159,7 @@ def gen_img(model, best_model_path, test_path, output_dir, device):
     os.makedirs(output_dir,exist_ok=True)
     for i, (imgs,_) in enumerate(test_loader):
         imgs = imgs.to(device)
-        output = model(images)
+        output = model(imgs)
         for j in range(output.size(1)):
             output_channel = output[:, j, :, :]  # Extract jth channel from the output
             img_name = str(output_dir).split('/')[-1]
@@ -177,7 +181,7 @@ def get_args():
     parser.add_argument('-v', '--valpath', type=str, required=True, help='Path to validation images')
     parser.add_argument('-te', '--testpath', type=str, help='Path to test images for generating multispectral images')
     parser.add_argument('-o', '--outputpath', type=str, help='Path to save generated multispectral images')    
-    parser.add_argument('-l', '--learningRate', type=float, default=0.0002, help='Learning rate')
+    parser.add_argument('-lr', '--learningRate', type=float, default=0.0002, help='Learning rate')
     parser.add_argument('-e', '--epochs', type=int, default=30, help='Number of epochs')
     parser.add_argument('-g', '--genimg', action='store_true', help='Generate multispectral images')
     return parser.parse_args()
@@ -187,11 +191,13 @@ if __name__ == '__main__':
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
     
-    model = SimpleUNet().to(device)
+    model = SimplyUNet().to(device)
     learning_rate = args.learningRate
-    optimizer = optim.NAdam(model.parameters(), lr=learning_rate)
+    optimizer = optim.SGD(model.parameters(), lr=learning_rate,momentum=0.9)
+
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
-    
+    if device == 'cuda':
+        torch.cuda.empty_cache()
     train_test_model(model, args.trainpath, args.valpath, optimizer, scheduler, device, epochs=args.epochs)
     
     if args.genimg:

@@ -32,9 +32,9 @@ class Block2(nn.Module):
         out_block1 = self.block1(x)
         return out_block1
 
-class SimpleUNet(nn.Module):
+class SimplyUNet(nn.Module):
     def __init__(self):
-        super(SimpleUNet, self).__init__()
+        super(SimplyUNet, self).__init__()
         
         # Encoder
         self.encoder_conv1 = Block1(3, 64)
