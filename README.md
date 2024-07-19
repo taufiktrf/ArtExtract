@@ -11,6 +11,7 @@ The ArtExtract project leverages machine learning to revolutionize art conservat
 | Harvard | 50 indoor and outdoor images, with 25 images featuring mixed illumination  | [Link](https://vision.seas.harvard.edu/hyperspec/d2x5g3/)  |
 
 <!-- Will be updated -->
+Link below will be updated soon...
 [Download selected dataset for the training]()
 
 [ Dataset Structure]
