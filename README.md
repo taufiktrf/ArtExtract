@@ -26,7 +26,7 @@ Link below will be updated soon...
 ```
 #### Directories
 ```                
-├── unets               # Collection of different UNets I've experiemented           
+├── unets               # Collection of different UNets            
 │   ├── transBlocks     # Chunks of Transformer blocks          
 │   └── ..       
 ├── utils               # For the data loading, eval metrics and visualization
@@ -53,7 +53,7 @@ python train.py --trainpath  '../train/' --valpath '../val/' -lr 0.02 -e 100
 
 All the citations for the referred papers are cited at the top of each code base.
 
-You can find out more about the project on the [blog](https://medium.com/@soyoungpark.psy) where I explained the step-by-step process of the project in detail.
+You can find out more about the project on the [blog]([https://medium.com/@soyoungpark.psy](https://medium.com/@soyoungpark.psy/beneath-the-canvas-discovering-hidden-art-with-ai-part1-gsoc-24-3dc499758120)) where I explained the step-by-step process of the project in detail.
 
 
 
