@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-# ArtExtract
-=======
 ## ArtExtract 🎨 
 
 #### Project overview
