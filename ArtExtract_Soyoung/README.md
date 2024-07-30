@@ -10,9 +10,7 @@ The ArtExtract project leverages machine learning to revolutionize art conservat
 | CAVE  | 32 scenes with full spectral resolution reflectance data from 400nm to 700nm at 10nm intervals (31 bands total)  | [Link](https://www.cs.columbia.edu/CAVE/databases/multispectral/)  |
 | Harvard | 50 indoor and outdoor images, with 25 images featuring mixed illumination  | [Link](https://vision.seas.harvard.edu/hyperspec/d2x5g3/)  |
 
-<!-- Will be updated -->
-Link below will be updated soon...
-[Download selected dataset for the training]()
+[Download dataset here.](https://drive.google.com/drive/folders/1tW_GlgvikZlo6fHXr8Sjq1yrLTHw4tSz?usp=share_link)
 
 [ Dataset Structure]
  ```               
