@@ -30,7 +30,7 @@ class EvalMetrics(nn.Module):
         mse = torch.mean((target - output) ** 2)
         if mse == 0:
             return float('inf')
-        max_pixel = 255.0
+        max_pixel = 1.0
         psnr_value = 10 * torch.log10(max_pixel / torch.sqrt(mse))
         return psnr_value
     

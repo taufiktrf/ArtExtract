@@ -64,6 +64,7 @@ def train_test_model(model, train_path, val_path, optimizer, scheduler, device,e
                         if epoch % 3 == 0 and temp_cnt < 3:
                             plot_images(output_image, target_image, epoch, j)
                         output_image = F.normalize(output_image, dim=1)
+                        target_image = F.normalize(output_image, dim=1)
                         loss += ms_ssim_loss(output_image, target_image)
                         psnr_value, lpips_value, ssim_value = metrics(output_image, target_image)
                         epoch_psnr += psnr_value.item()
@@ -136,6 +137,7 @@ def evaluate_model(model, val_loader, device, epoch, metrics):
                     output_image = output[i, j].unsqueeze(0)
                     target_image = masks[i, j]
                     output_image = F.normalize(output_image, dim=1)
+                    target_image = F.normalize(output_image, dim=1)
                     psnr_value, lpips_value, ssim_value = metrics(output_image, target_image)
                     val_psnr += psnr_value.item()
                     val_lpips += lpips_value.item()
@@ -164,16 +166,6 @@ def gen_img(model, best_model_path, test_path, output_dir, device):
             output_channel = output[:, j, :, :]  # Extract jth channel from the output
             img_name = str(output_dir).split('/')[-1]
             save_image(output_channel, os.path.join(img_name, f"_channel_{j}.png"))
-
-def get_args():
-    parser.add_argument('-tr', '--trainpath', type=str, help='train RGB image path')
-    parser.add_argument('-v', '--valpath', type=str, help='validation RGB image path')
-    parser.add_argument('-te', '--testpath', type=str, help='test RGB image path to generate multispectral images')
-    parser.add_argument('-o', '--outputpath', type=str, help='Path to save generated multispectral images')    
-    parser.add_argument('-l', '--learningRate', type=float, default=0.0002,help='learning rate')
-    parser.add_argument('-e', '--epochs', type=int, default=30,help='Number of epochs')
-    parser.add_argument('-g', '--genimg', action='store_false', help='Generate multispectral images')
-    return parser.parse_args()
 
 def get_args():
     parser = argparse.ArgumentParser(description="Train and evaluate a U-Net model")
