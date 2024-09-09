@@ -1,0 +1,7 @@
+torch
+torchvision
+torchmetrics
+timm
+einops
+pytorch-msssim
+wandb

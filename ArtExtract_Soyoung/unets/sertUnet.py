@@ -126,7 +126,7 @@ class SERTUnet(nn.Module):
         x = torch.cat([x, x3], dim=1)
         x = self.decoder_conv2(x)
         x = self.decoder_conv2_1(x)
-        x = self.sert_block1(x)
+        # x = self.sert_block1(x)
         
         x = self.decoder_upsample3(x)
         x = torch.cat([x, x2], dim=1)
@@ -138,7 +138,7 @@ class SERTUnet(nn.Module):
         x = torch.cat([x, x1], dim=1)
         x = self.decoder_conv4(x)
         x = self.decoder_conv4_1(x)
-        # x = self.sert_block3(x)
+        x = self.sert_block3(x)
         
         # Output
         x = self.output_conv(x)
