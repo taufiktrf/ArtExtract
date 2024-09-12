@@ -1,13 +1,13 @@
 import os
+import torch
 import argparse
 import numpy as np
-import matplotlib.pyplot as plt
-import torch
 import torch.nn as nn
+import matplotlib.pyplot as plt
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from data import load_datasets
-from extract import SiameseNetwork
+from extract.data import load_datasets
+from extract.extract import SiameseNetwork
 
 def train(model, device, train_loader, val_loader, optimizer, epochs):
     model.train() 
@@ -28,8 +28,8 @@ def train(model, device, train_loader, val_loader, optimizer, epochs):
             print(f'Epoch: {epoch} ({100. * batch_idx / len(train_loader):.0f}%)\tLoss: {loss.item():.6f}') 
             
             # Visualize periodically (e.g., every 5 epochs)
-            if epoch % 5 == 0:
-                view_output(collage, gt, epoch)
+            # if epoch % 5 == 0:
+            #     view_output(collage, gt, epoch)
                 
         val_loss, _ = validate(model, device, val_loader, epoch)
 

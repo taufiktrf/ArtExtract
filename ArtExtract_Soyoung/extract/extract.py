@@ -95,8 +95,7 @@ class SiameseNetwork(nn.Module):
         
         collage = torch.zeros((batch_size, 1, h, w), device=gt.device)
         # Shape: [batch_size, 1, h, w]
-        
-        for ref_idx in range(len(refs)):
+        for ref_idx in range(len(refs[1])):
             ref_img = refs_feat[:, ref_idx, :, :, :]
             # Shape: [batch_size, c, h, w]
             

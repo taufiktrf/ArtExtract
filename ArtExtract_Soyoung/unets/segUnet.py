@@ -31,7 +31,7 @@ class SegUNet(nn.Module):
         self.decoder_conv1_1 = Block2(512, 512)
         
         self.decoder_upsample2 = nn.ConvTranspose2d(512, 320, kernel_size=2, stride=2)
-        self.decoder_conv2 = Block2(640, 320)  0
+        self.decoder_conv2 = Block2(640, 320) 
         self.decoder_conv2_1 = Block2(320, 320)
         
         self.decoder_upsample3 = nn.ConvTranspose2d(320, 128, kernel_size=2, stride=2)  
