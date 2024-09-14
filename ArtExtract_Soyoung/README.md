@@ -69,7 +69,7 @@ Instead, the generated images shown below are based on the best-performing model
 
 Example. Hidden Painting Extraction Tool
 
-<img src="./img/extract1.png" alt="extract" width="400"/>
+![extract](./img/extract_example.png)
 
 This tool helps uncover hidden details in paintings by highlighting areas with the highest pixel differences across eight multispectral imaging (MSI) outputs. Designed for art historians and conservators, it provides an intuitive way to explore concealed features, such as underlying sketches or restorations. The convolutional layers can be adjusted for complexity, and the current output is thresholded at 0.7 using a normalized difference map. This approach makes it easier to analyze hidden elements in a painting, offering an efficient and accessible method for deeper art investigation and preservation.
 
