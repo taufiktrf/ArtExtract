@@ -1,12 +1,19 @@
 ## ArtExtract 🎨 
 
 #### 1. Project overview
+![banner](./img/banner.png)
+
+
 The ArtExtract project leverages machine learning to revolutionize art conservation by uncovering hidden paintings through multispectral imaging. By creating a comprehensive dataset of multispectral images of paintings, the project aims to develop an AI model capable of detecting hidden artworks behind the canvas. The project's innovative techniques could lead to significant discoveries in art history. Initially, the focus is on generating high-quality multispectral images from RGB images, addressing the challenges and strategic approaches needed to achieve this goal.
 
 #### 2. Model Structure
 <!-- Model architecture image and explanation will be added -->
 2.1 Multispectral Image (MSI) Generation 
+##### SimplyUnet Architecture
+![simplyUnet](./img/simplyUnet.png)
 
+##### SparseUnet Architecture
+![sparseUnet](./img/sparseUnet.png)
 
 2.2 Hidden Painting Extraction
 
@@ -61,10 +68,12 @@ Instead, the generated images shown below are based on the best-performing model
 
 ![output](./img/visualized_output.png)
 
-<!-- The demonstration using Siamese network !!!!!!!!!-->
-Example of Hidden Painting Extraction Model.
+Example. Hidden Painting Extraction Tool
 
 <img src="./img/extract1.png" alt="extract" width="400"/>
+
+This tool helps uncover hidden details in paintings by highlighting areas with the highest pixel differences across eight multispectral imaging (MSI) outputs. Designed for art historians and conservators, it provides an intuitive way to explore concealed features, such as underlying sketches or restorations. The convolutional layers can be adjusted for complexity, and the current output is thresholded at 0.7 using a normalized difference map. This approach makes it easier to analyze hidden elements in a painting, offering an efficient and accessible method for deeper art investigation and preservation.
+
 
 
 #### 5. Implementation guidance
@@ -124,4 +133,4 @@ keywords: {Feature extraction;Spatial resolution;Neural networks;Dictionaries;Im
 ```
 
 
-Find out more about the project on this [blog]([https://medium.com/@soyoungpark.psy](https://medium.com/@soyoungpark.psy/beneath-the-canvas-discovering-hidden-art-with-ai-part1-gsoc-24-3dc499758120))! 
+Find out more about the project on this [blog]([https://medium.com/@soyoungpark.psy](https://medium.com/@soyoungpark.psy/beneath-the-canvas-discovering-hidden-art-with-ai-part1-gsoc-24-3dc499758120))
