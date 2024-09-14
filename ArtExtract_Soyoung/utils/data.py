@@ -11,7 +11,7 @@ class UNetDataset(Dataset):
         self.images_dir = images_dir
         self.masks_dir = masks_dir
         self.transform = transform
-        self.images =  [f for f in sorted(os.listdir(images_dir)) if f.endswith('RGB.bmp') or f.endswith('.png') or f.endswith('.jpg')]
+        self.images =  [f for f in sorted(os.listdir(images_dir)) if f.endswith('RGB.bmp') or f.endswith('.png') or f.endswith('.jpg') or f.endswith('.JPG')]
         
         # Ensure each image has corresponding 8 masks
         self.masks = {img_name: sorted([f for f in os.listdir(masks_dir) if f.startswith(img_name.split('_RGB')[0])]) for img_name in self.images}
@@ -32,9 +32,11 @@ class UNetDataset(Dataset):
             mode = mask.mode
     
             # If the mask image has more than one channel, convert it to grayscale
-            if mode not in ['L','I']: #watercolor image from CAVE dataset is RGBA 4 channel that causes error
-                # Convert the mask image to grayscale
+            if mode == 'I;16':  # Handle 16-bit images
+                mask = mask.point(lambda i: i * (1 / 255)).convert("L")
+            elif mode not in ['L', 'I']:  # Convert non-grayscale masks to grayscale
                 mask = mask.convert('L')
+            masks.append(mask)
             masks.append(mask)
 
         if self.transform:
