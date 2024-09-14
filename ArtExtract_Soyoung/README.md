@@ -7,7 +7,6 @@
 The ArtExtract project leverages machine learning to revolutionize art conservation by uncovering hidden paintings through multispectral imaging. By creating a comprehensive dataset of multispectral images of paintings, the project aims to develop an AI model capable of detecting hidden artworks behind the canvas. The project's innovative techniques could lead to significant discoveries in art history. Initially, the focus is on generating high-quality multispectral images from RGB images, addressing the challenges and strategic approaches needed to achieve this goal.
 
 #### 2. Model Structure
-<!-- Model architecture image and explanation will be added -->
 2.1 Multispectral Image (MSI) Generation 
 ##### SimplyUnet Architecture
 ![simplyUnet](./img/simplyUnet.png)
