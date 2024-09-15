@@ -56,7 +56,7 @@ def train_test_model(model, train_path, val_path, optimizer, scheduler, device, 
             images, masks = images.to(device, non_blocking=True), masks.to(device, non_blocking=True)
             output = model(images)
             masks = masks.squeeze(2)    
-            
+            assert masks.shape == output.shape  # [B, 8, H, W]
             output = F.normalize(output, dim=1)
             masks = F.normalize(masks, dim=1)
             # (Optional) If you want to visually check the image.
@@ -102,16 +102,16 @@ def train_test_model(model, train_path, val_path, optimizer, scheduler, device, 
         })
 
         # Save the best model based on validation LPIPS
-        if val_lpips < best_val_lpips:
-            best_val_lpips = val_lpips
-            new_model_path = os.path.join(best_model_dir, f"baseUnet_{best_model_number}_{best_val_lpips:.4f}.pth")
-            if best_model_number > 0:
-                old_model_path = os.path.join(best_model_dir, f"baseUnet_{best_val_lpips:.4f}.pth")
-                if os.path.exists(old_model_path):
-                    os.remove(old_model_path)
-            torch.save(model.state_dict(), new_model_path)
-            best_model_number += 1
-            print(f"Best model saved with Validation LPIPS: {best_val_lpips:.4f}")
+        # if val_lpips < best_val_lpips:
+        #     best_val_lpips = val_lpips
+        #     new_model_path = os.path.join(best_model_dir, f"baseUnet_{best_model_number}_{best_val_lpips:.4f}.pth")
+        #     if best_model_number > 0:
+        #         old_model_path = os.path.join(best_model_dir, f"baseUnet_{best_val_lpips:.4f}.pth")
+        #         if os.path.exists(old_model_path):
+        #             os.remove(old_model_path)
+        #     torch.save(model.state_dict(), new_model_path)
+        #     best_model_number += 1
+        #     print(f"Best model saved with Validation LPIPS: {best_val_lpips:.4f}")
         
         del epoch_psnr, epoch_lpips,epoch_ssim, val_psnr,val_lpips,val_ssim
         torch.cuda.empty_cache()
@@ -207,8 +207,8 @@ if __name__ == '__main__':
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
     
-    model = SimplyUNet().to(device, non_blocking=True) 
-    # model = BaseUNet().to(device, non_blocking=True) 
+    # model = SimplyUNet().to(device, non_blocking=True) 
+    model = BaseUNet().to(device, non_blocking=True) 
     # model = SparseUNet().to(device, non_blocking=True) 
     # model = SERTUnet().to(device, non_blocking=True)
     # model = segUnet().to(device, non_blocking=True)

@@ -8,11 +8,26 @@ The ArtExtract project leverages machine learning to revolutionize art conservat
 
 #### 2. Model Structure
 2.1 Multispectral Image (MSI) Generation 
-##### SimplyUnet Architecture
+
+##### A. SimplyUnet Architecture
 ![simplyUnet](./img/simplyUnet.png)
 
-##### SparseUnet Architecture
+Inspired by previous studies using U-Net-based approaches [1][2][3], we developed **SimplyUnet** for generating multispectral images from RGB input images. This model differentiates itself by simplifying the intermediate blocks and employing an asymmetrical structure for the encoder and decoder, utilizing modified Block1 and Block2, respectively. 
+
+**SimplyUnet** is designed to dynamically capture the hidden features of the images by leveraging these architectural innovations. The simplified intermediate blocks streamline the feature extraction process, while the asymmetrical design allows for a more effective handling of the varying complexities between encoding and decoding stages. This approach not only enhances the model's ability to reveal subtle details in multispectral images but also improves computational efficiency, making it a powerful tool for applications requiring precise image analysis and feature extraction.
+
+
+##### B. SparseUnet Architecture
 ![sparseUnet](./img/sparseUnet.png)
+
+SparseUnet draws inspiration from advancements in U-Net architectures, particularly the evolution towards more intricate and expansive connections in models like Unet++ and Unet3+. While Unet++ introduced nested and dense skip connections and Unet3+ expanded connections to a full scale, SparseUnet aims to refine this approach by incorporating sparser, intermittent connections between decoder blocks and previous layers.
+
+The primary motivation behind SparseUnet is to minimize the loss of key features and enhance the model's ability to capture detailed features. By strategically applying sparse connections, SparseUnet seeks to balance the richness of feature propagation with computational efficiency, ultimately improving performance in complex image generation tasks.
+
+
+##### C. Multi-Scale SSIM (MS-SSIM)
+
+MS-SSIM (Multi-Scale Structural Similarity) is an extended version of SSIM (Structural Similarity Index) that evaluates image quality at multiple scales, allowing the model to learn and preserve details across various resolutions. By computing the SSIM score at different scales, MS-SSIM provides a more comprehensive measure of structural similarity, capturing both fine details and larger contextual information.
 
 2.2 Hidden Painting Extraction
 
@@ -108,10 +123,10 @@ python train.py --trainpath  '../train/' --valpath '../val/' -lr 0.02 -e 100
 
 #### 6. Citations
 ```
-T. Zeng, C. Diao and D. Lu, "U-Net-Based Multispectral Image Generation From an RGB Image," in IEEE Access, vol. 9, pp. 43387-43396, 2021, doi: 10.1109/ACCESS.2021.3066472.
+[1] T. Zeng, C. Diao and D. Lu, "U-Net-Based Multispectral Image Generation From an RGB Image," in IEEE Access, vol. 9, pp. 43387-43396, 2021, doi: 10.1109/ACCESS.2021.3066472.
 keywords: {Feature extraction;Spatial resolution;Neural networks;Dictionaries;Image synthesis;Image reconstruction;Training;Convolutional neural networks;multispectral image;U-Net},
 
-@misc{xie2021segformersimpleefficientdesign,
+[2] @misc{xie2021segformersimpleefficientdesign,
       title={SegFormer: Simple and Efficient Design for Semantic Segmentation with Transformers}, 
       author={Enze Xie and Wenhai Wang and Zhiding Yu and Anima Anandkumar and Jose M. Alvarez and Ping Luo},
       year={2021},
@@ -120,7 +135,7 @@ keywords: {Feature extraction;Spatial resolution;Neural networks;Dictionaries;Im
       primaryClass={cs.CV},
       url={https://arxiv.org/abs/2105.15203}}
 
-@misc{li2023spectralenhancedrectangletransformer,
+[3] @misc{li2023spectralenhancedrectangletransformer,
       title={Spectral Enhanced Rectangle Transformer for Hyperspectral Image Denoising}, 
       author={Miaoyu Li and Ji Liu and Ying Fu and Yulun Zhang and Dejing Dou},
       year={2023},

@@ -37,7 +37,6 @@ class UNetDataset(Dataset):
             elif mode not in ['L', 'I']:  # Convert non-grayscale masks to grayscale
                 mask = mask.convert('L')
             masks.append(mask)
-            masks.append(mask)
 
         if self.transform:
             image = self.transform(image)
@@ -50,14 +49,14 @@ class UNetDataset(Dataset):
 
 def load_datasets(train_path, val_path):
     train_transform = transforms.Compose([
-        transforms.Resize((512, 512)),
+        transforms.Resize((256, 256)),
         transforms.RandomHorizontalFlip(),
         transforms.RandomVerticalFlip(),
         transforms.ToTensor()
     ])
         
     transform = transforms.Compose([
-        transforms.Resize((512, 512)),  
+        transforms.Resize((256, 256)),  
         transforms.ToTensor(),   
     ])
     

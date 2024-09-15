@@ -15,7 +15,7 @@ Applied SERT(Spectral Enhanced Rectangle Transformer) at the end of each decoder
 
 import torch
 import torch.nn as nn
-from transBlocks.sert import SERT
+from unets.transBlocks.sert import SERT
 
 class Block1(nn.Module):
     def __init__(self, in_channels, out_channels):
