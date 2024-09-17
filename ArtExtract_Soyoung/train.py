@@ -16,10 +16,10 @@ from model import SimplyUNet
 from utils.vizImg import plot_images, viz_train
 from utils.metrics import MS_SSIMLoss, EvalMetrics
 from torchvision.models.vgg import VGG16_Weights
-# For the comoparative experiements
-from unets.baseUnet import BaseUNet
-from unets.sertUnet import SERTUnet
-from unets.sparseUnet import SparseUNet
+# # For the comparative experiements (Optional)
+# from unets.baseUnet import BaseUNet
+# from unets.sertUnet import SERTUnet
+# from unets.sparseUnet import SparseUNet
 
 warnings.filterwarnings("ignore")
 
@@ -199,7 +199,7 @@ def get_args():
     parser.add_argument('--project', type=str, default='GSOC', help='W&B project name')
     parser.add_argument('--name', type=str, default='run1', help='W&B run name')
     # Put your entity name at the default section!
-    parser.add_argument('--entity', type=str, default='ss26348-queen-mary-university-of-london', help='W&B entity name')
+    parser.add_argument('--entity', type=str, default='ENTER YOUR ENTITY NAME', help='W&B entity name')
     return parser.parse_args()
 
 if __name__ == '__main__':
@@ -207,12 +207,7 @@ if __name__ == '__main__':
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
     
-    # model = SimplyUNet().to(device, non_blocking=True) 
-    model = BaseUNet().to(device, non_blocking=True) 
-    # model = SparseUNet().to(device, non_blocking=True) 
-    # model = SERTUnet().to(device, non_blocking=True)
-    # model = segUnet().to(device, non_blocking=True)
-    
+    model = SimplyUNet().to(device, non_blocking=True) 
     learning_rate = args.learningRate
     optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=0.8)
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.1)
