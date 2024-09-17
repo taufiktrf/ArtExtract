@@ -71,7 +71,7 @@ Download train/val dataset used for the study [here.](https://drive.google.com/d
 - **SSIM (Structural Similarity Index):** Evaluates the similarity between two images by comparing their luminance, contrast, and structure, suggesting comprehensive image quality assessment.
 
 
-| Model  | LPIPS &#8595; | PSNR &#8593; |SSIM &#8595; |
+| Model  | LPIPS &#8595; | PSNR &#8593; |SSIM &#8593; |
 | ------------| ------------- |------------- |  ------------- |
 |SimpyUnet	|$${\color{red}0.0095}$$|$${\color{red}11.3711}$$	|0.1757|
 |SparseUnet|	0.0143	|10.2455	|$${\color{red}0.2409}$$|
