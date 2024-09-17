@@ -3,8 +3,7 @@
 #### 1. Project overview
 ![banner](./img/banner.png)
 
-
-The ArtExtract project leverages machine learning to revolutionize art conservation by uncovering hidden paintings through multispectral imaging. By creating a comprehensive dataset of multispectral images of paintings, the project aims to develop an AI model capable of detecting hidden artworks behind the canvas. The project's innovative techniques could lead to significant discoveries in art history. Initially, the focus is on generating high-quality multispectral images from RGB images, addressing the challenges and strategic approaches needed to achieve this goal.
+The ArtExtract project leverages machine learning to revolutionize art conservation by uncovering hidden paintings through multispectral imaging. By creating a comprehensive dataset of multispectral images of paintings, the project aims to develop an AI model capable of detecting hidden artworks behind the canvas. The project's innovative techniques could lead to significant discoveries in art history. The primary goal of the project is to generate high-quality multispectral images from RGB images,and providing practical tool to extract the figure of the hidden painting.
 
 #### 2. Model Structure
 2.1 Multispectral Image (MSI) Generation 
@@ -25,7 +24,7 @@ SparseUnet draws inspiration from advancements in U-Net architectures, particula
 The primary motivation behind SparseUnet is to minimize the loss of key features and enhance the model's ability to capture detailed features. By strategically applying sparse connections, SparseUnet seeks to balance the richness of feature propagation with computational efficiency, ultimately improving performance in complex image generation tasks.
 
 
-##### C. Multi-Scale SSIM (MS-SSIM)
+##### C. Loss Function : Multi-Scale SSIM (MS-SSIM)
 
 MS-SSIM (Multi-Scale Structural Similarity) is an extended version of SSIM (Structural Similarity Index) that evaluates image quality at multiple scales, allowing the model to learn and preserve details across various resolutions. By computing the SSIM score at different scales, MS-SSIM provides a more comprehensive measure of structural similarity, capturing both fine details and larger contextual information.
 
@@ -66,19 +65,25 @@ Download train/val dataset used for the study [here.](https://drive.google.com/d
 
 #### 4. Results
 4.1 Quantitative Analysis
+##### Evaluation Metrics
+- **LPIPS (Learned Perceptual Image Patch Similarity):** Measures perceptual similarity between images passed through pre-trained neural network to capture the detailed visual difference between the images.
+- **PSNR (Peak Signal-to-Noise Ratio):** Measures image quality by comparing the maximum possible pixel value to the differences between pixels of two images, with higher values indicating better quality.
+- **SSIM (Structural Similarity Index):** Evaluates the similarity between two images by comparing their luminance, contrast, and structure, suggesting comprehensive image quality assessment.
 
-These results are based on the patchified training dataset due to the limited availability of validation data, which is insufficient to fully demonstrate the model's robustness on the painting dataset.
 
-| Model  | PSNR  | LPIPS |SSIM |
+| Model  | LPIPS &#8595; | PSNR &#8593; |SSIM &#8595; |
 | ------------| ------------- |------------- |  ------------- |
-|SimplyUNet  |0.0201	|14.4565|	0.4936|
-|SparseNet|0.0032|	13.0291	|0.2910|
+|SimpyUnet	|$${\color{red}0.0095}$$|$${\color{red}11.3711}$$	|0.1757|
+|SparseUnet|	0.0143	|10.2455	|$${\color{red}0.2409}$$|
+|[1]ImprovedUnet|	0.0133|	10.1516|	0.1559|
 
-<!-- Explanation would be added -->
+Our SimplyUnet model demonstrates lower LPIPS and higher PSNR compared to [1], while SparseUnet achieved better SSIM performance relative to other models. Despite the simplicity of the intermediate blocks (Block1, Block2), the superior results highlight SimplyUnet's effectiveness in generating outputs that closely resemble the ground truth multispectral image (MSI). It is interesting to observe that the SparseUnet with increased connectivity between the encoder and decoder blocks contributed to an improved SSIM score, indicating better structural preservation and feature retention in the reconstructed images.
+
+These results are based on a training result from the patchified dataset due to the limited availability of validation data (resized to 128x128), which restricts the ability to fully demonstrate the model's robustness on the complete painting dataset. In the future, the model could be further optimized by training on the full painting dataset, tailoring it specifically for discovering hidden images. Additionally, with sufficient computational resources, training on larger image sizes could help capture more intricate details that may be lost at smaller resolutions.
 
 4.2 Qualitative Analysis
 
-Instead, the generated images shown below are based on the best-performing model, selected using the saved `.pth` file with the lowest LPIPS score on the validation dataset. While there is some discrepancy between the output and the Ground Truth image (MSI) due to non-painting objects in the training data, the model effectively highlights hidden features of the painting, making them even more visible.
+Generated images shown below are based on the best-performing model of SimplyUnet, selected using the saved `.pth` file with the lowest LPIPS score on the validation dataset. While there is some discrepancy between the output and the Ground Truth image (MSI) due to non-painting objects in the training data, the model effectively highlights hidden features of the painting, making them even more visible.
 
 ![output](./img/visualized_output.png)
 
@@ -87,7 +92,6 @@ Example. Hidden Painting Extraction Tool
 ![extract](./img/extract_example.png)
 
 This tool helps uncover hidden details in paintings by highlighting areas with the highest pixel differences across eight multispectral imaging (MSI) outputs. Designed for art historians and conservators, it provides an intuitive way to explore concealed features, such as underlying sketches or restorations. The convolutional layers can be adjusted for complexity, and the current output is thresholded at 0.7 using a normalized difference map. This approach makes it easier to analyze hidden elements in a painting, offering an efficient and accessible method for deeper art investigation and preservation.
-
 
 
 #### 5. Implementation guidance
@@ -147,4 +151,4 @@ keywords: {Feature extraction;Spatial resolution;Neural networks;Dictionaries;Im
 ```
 
 
-Find out more about the project on this [blog]([https://medium.com/@soyoungpark.psy](https://medium.com/@soyoungpark.psy/beneath-the-canvas-discovering-hidden-art-with-ai-part1-gsoc-24-3dc499758120))
+Find out more about the project on this [blog](https://medium.com/@soyoungpark.psy)
