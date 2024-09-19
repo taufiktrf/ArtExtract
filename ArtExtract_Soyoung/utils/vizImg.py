@@ -2,23 +2,28 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Display the output image and compare with target image visually
-def plot_images(output_image, target_image, epoch, channel):
+# Output can be blurry after the normalisation
+def plot_images(output_image, target_image, epoch):
+    # Fixed to view 1st image in batch, 3rd channel
+    output_image = output_image[0, 2]
+    target_image = target_image[0, 2]
     output_image_np = output_image.squeeze().cpu().detach().numpy()
     target_image_np = target_image.squeeze().cpu().detach().numpy()
     plt.figure(figsize=(7, 5))
     
     plt.subplot(1, 2, 1)
     plt.imshow(output_image_np, cmap='gray')
-    plt.title(f'Output - Epoch {epoch} - Channel {channel}',fontsize=9)
+    plt.title(f'Output - Epoch {epoch}',fontsize=9)
     plt.axis('off')
     
     plt.subplot(1, 2, 2)
     plt.imshow(target_image_np, cmap='gray')
-    plt.title(f'Target - Epoch {epoch} - Channel {channel}',fontsize=9)
+    plt.title(f'Target - Epoch {epoch}',fontsize=9)
     plt.axis('off')
     
     plt.show()
-    
+
+# If you are not using W$B, you can manually plot the training progress
 def viz_train(losses,train_lpipses, val_lpipses,train_psnrs,val_psnrs,train_ssims,val_ssims):
     plt.figure(figsize=(10, 5))
     plt.plot(np.arange(1, len(losses) + 1), losses)
